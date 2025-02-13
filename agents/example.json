@@ -100,6 +100,9 @@
       "chain_slug": "testnet"
     },
     {
+      "name": "telegram"
+    },
+    {
       "name": "ethereum",
       "rpc": "https://eth.blockrazor.xyz"  
     },
