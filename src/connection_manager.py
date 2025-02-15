@@ -215,7 +215,11 @@ class ConnectionManager:
                 )
                 return None
 
-            return connection.perform_action(action_name, kwargs)
+            if connection_name == "tarot-reader":
+                import asyncio
+                return asyncio.run(connection.perform_action(action_name, kwargs))
+            else:
+                return connection.perform_action(action_name, kwargs)
 
         except Exception as e:
             logging.error(
