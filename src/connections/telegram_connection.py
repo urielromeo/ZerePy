@@ -44,11 +44,6 @@ class TelegramConnection(BaseConnection):
     def register_actions(self) -> None:
         """Register available Telegram actions"""
         self.actions = {
-            "hello-world": Action(
-                name="hello-world",
-                parameters=[],
-                description="Test action for Telegram Connection"
-            ),
             "send-message": Action(
                 name="send-message",
                 parameters=[
@@ -75,6 +70,12 @@ class TelegramConnection(BaseConnection):
                         required=True,
                         type=str,
                         description="The URL to which Telegram should send updates"
+                    ),
+                    ActionParameter(
+                        "secret",
+                        required=False,
+                        type=str,
+                        description="A secret token to be sent in a header “X-Telegram-Bot-Api-Secret-Token” in every webhook request."
                     ),
                     ActionParameter(
                         "allowed_updates",
@@ -265,7 +266,7 @@ class TelegramConnection(BaseConnection):
         method = getattr(self, method_name)
         return method(**kwargs)
 
-    def set_webhook(self, webhook_url: str, allowed_updates: List[str] = None) -> dict:
+    def set_webhook(self, webhook_url: str, secret: str = None, allowed_updates: List[str] = None) -> dict:
         """
         Registers a webhook URL with Telegram.
         
@@ -279,6 +280,9 @@ class TelegramConnection(BaseConnection):
         payload = {"url": webhook_url}
         if allowed_updates:
             payload["allowed_updates"] = allowed_updates
+
+        if secret:
+            payload["secret"] = secret
 
         return self._make_request("post", "setWebhook", json=payload)
 
