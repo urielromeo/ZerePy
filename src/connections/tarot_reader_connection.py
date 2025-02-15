@@ -177,7 +177,9 @@ class TarotReaderConnection(BaseConnection):
                 return None
 
             # try to get defillama data
-            raw_defillama_data = goat.perform_action("get_chain_volume", chain="sonic")
+            raw_defillama_data = goat.perform_action("get_chain_volume", {
+                "chain": "sonic"
+            })
             clean_defillama_data = self.defillama_result_to_prompt(raw_defillama_data)
             logger.info(clean_defillama_data)
 
