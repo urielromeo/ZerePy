@@ -325,7 +325,11 @@ class TarotReaderConnection(BaseConnection):
             
             if stop_before_tweet:
                 logger.info("Stopping before tweet...")
-                return
+                return {
+                    "image_url": image_url,
+                    "reading_long": mystical_reading,
+                    "reading_short": dalle_friendly_prompt
+                }
             
             if image_url:
                 # Define the base and images folder paths
@@ -372,7 +376,6 @@ class TarotReaderConnection(BaseConnection):
                         logger.info("Successfully posted to Twitter")
                 except Exception as e:
                     logger.warning(f"Twitter posting failed (this is okay): {e}")
-            
         except Exception as e:
             logger.error(f"Failed to perform reading: {str(e)}")
             return "The cards are unclear... Try again when the stars align."
