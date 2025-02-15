@@ -330,8 +330,9 @@ class TwitterConnection(BaseConnection):
             self._get_credentials()
 
             # Test the configuration by making a simple API call
-            self._get_authenticated_user_info()
-            logger.debug("Twitter configuration is valid")
+            # self._get_authenticated_user_info()
+            # logger.debug("Twitter configuration is valid")
+            logger.debug("Skipped twitter configuration check")
             return True
 
         except Exception as e:
