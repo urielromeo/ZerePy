@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 from typing import Dict, Any
 from dotenv import load_dotenv, set_key
 from openai import OpenAI
@@ -23,6 +24,8 @@ class OpenAIConnection(BaseConnection):
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
         self._client = None
+        self._last_request_time = 0
+        self._min_request_interval = 1.0  # Minimum seconds between requests
 
     @property
     def is_llm_provider(self) -> bool:
@@ -65,6 +68,11 @@ class OpenAIConnection(BaseConnection):
                 name="list-models",
                 parameters=[],
                 description="List all available OpenAI models"
+            ),
+            "generate-image": Action(
+                name="generate-image",
+                parameters=[ActionParameter("prompt", True, str, "Prompt for image generation")],
+                description="Generate an image using OpenAI"
             )
         }
 
@@ -130,9 +138,23 @@ class OpenAIConnection(BaseConnection):
                 logger.debug(f"Configuration check failed: {e}")
             return False
 
+    def _throttle_requests(self):
+        """Implement request throttling"""
+        current_time = time.time()
+        time_since_last_request = current_time - self._last_request_time
+        
+        if time_since_last_request < self._min_request_interval:
+            sleep_time = self._min_request_interval - time_since_last_request
+            logger.debug(f"Rate limiting: Waiting {sleep_time:.2f}s before next request")
+            time.sleep(sleep_time)
+            
+        self._last_request_time = time.time()
+
     def generate_text(self, prompt: str, system_prompt: str, model: str = None, **kwargs) -> str:
-        """Generate text using OpenAI models"""
+        """Generate text using OpenAI models with rate limiting"""
         try:
+            self._throttle_requests()  # Apply rate limiting
+            
             client = self._get_client()
             
             # Use configured model if none provided
@@ -151,6 +173,16 @@ class OpenAIConnection(BaseConnection):
             
         except Exception as e:
             raise OpenAIAPIError(f"Text generation failed: {e}")
+
+    def generate_text_sync(self, prompt: str, system_prompt: str, model: str = None, **kwargs) -> str:
+        """Synchronous version of generate_text"""
+        return self.generate_text(prompt, system_prompt, model, **kwargs)
+
+    def generate_image(self, prompt: str, **kwargs) -> str:
+        self._throttle_requests()
+        client = self._get_client()
+        response = client.images.generate(prompt=prompt, model="dall-e-2")
+        return response.data[0].url
 
     def check_model(self, model, **kwargs):
         try:

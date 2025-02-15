@@ -11,6 +11,7 @@ from src.action_handler import execute_action
 import src.actions.twitter_actions  
 import src.actions.echochamber_actions
 import src.actions.solana_actions
+import src.actions.tarot_reader_actions
 from datetime import datetime
 
 REQUIRED_FIELDS = ["name", "bio", "traits", "examples", "loop_delay", "config", "tasks"]

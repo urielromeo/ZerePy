@@ -1,0 +1,625 @@
+import logging
+import os
+from typing import Dict, Any, List
+
+import requests
+from src.connections.base_connection import BaseConnection, Action, ActionParameter
+from decimal import Decimal
+
+logger = logging.getLogger("connections.tarot_reader")
+
+class TarotReaderConnection(BaseConnection):
+    def __init__(self, config: Dict[str, Any], connection_manager=None):
+        # Don't set connection_manager here, let parent handle it
+        super().__init__(config, connection_manager=connection_manager)
+
+    @property
+    def is_llm_provider(self) -> bool:
+        return False
+
+
+    def validate_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate TarotReader configuration"""
+        return config  # No specific config needed for now
+
+    def register_actions(self) -> None:
+        """Register available TarotReader actions"""
+        self.actions = {
+            "perform-reading": Action(
+                name="perform-reading",
+                parameters=[],
+                description="Perform a complete tarot reading"
+            ),
+            "get-market-sentiment": Action(
+                name="get-market-sentiment",
+                parameters=[],
+                description="Get current market sentiment"
+            )
+        }
+
+    def configure(self) -> bool:
+        """No special configuration needed"""
+        return True
+
+    def is_configured(self, verbose: bool = False) -> bool:
+        """Always returns True as no configuration is needed"""
+        return True
+
+
+    def _analyze_market_data(self, market_data: Dict[str, Any], network_stats: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze market data and network stats to generate base reading"""
+        sentiment = "neutral"
+        if market_data["price_change"] > 5:
+            sentiment = "bullish"
+        elif market_data["price_change"] < -5:
+            sentiment = "bearish"
+                
+        return {
+            "sentiment": sentiment,
+            "market_indicators": {
+                "price": market_data["price"],
+                "change": market_data["price_change"],
+            },
+            "network_indicators": {
+                # Changed "total_transactions" to "transactions" per the new structure
+                "transactions": network_stats.get("transactions", 0),
+                "tvl": network_stats.get("tvl", 0)
+            }
+        }
+
+    def defillama_result_to_prompt(self, data):
+        # Assume that response.json() has been parsed into the variable "data"
+        # For example:
+        # data = response.json()
+
+        # Build a detailed summary text with general top‐level data and protocol details,
+        # excluding extraneous fields (like image URLs, defillama IDs, etc).
+
+        lines = []
+
+        # --- General Top-Level Data ---
+        lines.append("=== GENERAL DATA ===")
+        if "chain" in data:
+            lines.append(f"Chain: {data['chain']}")
+
+        # Use the overall volume and change metrics if present
+        for key, label in [
+            ("total24h", "Total Volume (24h)"),
+            ("total7d", "Total Volume (7d)"),
+            ("total30d", "Total Volume (30d)"),
+            ("total1y", "Total Volume (1y)"),
+            ("change_1d", "Change (1d)"),
+            ("change_7d", "Change (7d)"),
+            ("change_1m", "Change (1m)"),
+            ("change_7dover7d", "Change (7d over 7d)"),
+            ("change_30dover30d", "Change (30d over 30d)"),
+            ("total7DaysAgo", "Volume 7 Days Ago"),
+            ("total30DaysAgo", "Volume 30 Days Ago")
+        ]:
+            if key in data and data[key] is not None:
+                # For change values, add a percentage sign.
+                value = data[key]
+                if "change" in key:
+                    value = f"{value}%"
+                lines.append(f"{label}: {value}")
+
+        lines.append("\n=== PROTOCOL DETAILS ===")
+
+        # --- Protocols Data ---
+        # Loop over each of the 10 protocols in the "protocols" array.
+        for proto in data.get("protocols", []):
+            lines.append("\n------------------------------")
+            # Name and Category
+            if "name" in proto:
+                lines.append(f"Protocol Name: {proto['name']}")
+            if "category" in proto:
+                lines.append(f"Category: {proto['category']}")
+            # Chains (list them as a comma-separated string)
+            if "chains" in proto:
+                chains = ", ".join(proto["chains"])
+                lines.append(f"Chains: {chains}")
+
+            # Volume metrics (only include if the key exists)
+            for key, label in [
+                ("total24h", "24h Volume"),
+                ("total7d", "7d Volume"),
+                ("total30d", "30d Volume"),
+                ("total1y", "1y Volume"),
+                ("totalAllTime", "All-Time Volume")
+            ]:
+                if key in proto and proto[key] is not None:
+                    lines.append(f"{label}: {proto[key]}")
+
+            # Change metrics
+            for key, label in [
+                ("change_1d", "Change (1d)"),
+                ("change_7d", "Change (7d)"),
+                ("change_1m", "Change (1m)"),
+                ("change_7dover7d", "Change (7d over 7d)"),
+                ("change_30dover30d", "Change (30d over 30d)")
+            ]:
+                if key in proto and proto[key] is not None:
+                    lines.append(f"{label}: {proto[key]}%")
+                    
+            # Previous volume snapshots if available
+            for key, label in [
+                ("total7DaysAgo", "Volume 7 Days Ago"),
+                ("total30DaysAgo", "Volume 30 Days Ago")
+            ]:
+                if key in proto and proto[key] is not None:
+                    lines.append(f"{label}: {proto[key]}")
+
+        # Combine all lines into one big text string.
+        output_text = "\n".join(lines)
+
+        # Now, output_text holds the full summary text with only the relevant data.
+        return output_text
+
+
+    async def perform_reading(self) -> Dict[str, Any]:
+        """Process market data and network stats into a reading format"""
+        stop_before_openai = False
+        stop_before_tweet = True
+        try:
+            logger.info("Starting tarot reading process...")
+    
+            if not self.connection_manager:
+                logger.error("Connection manager not initialized")
+                return None
+
+            logger.info(f"Connection manager status: {self.connection_manager is not None}")
+            logger.info(f"Available connections: {list(self.connection_manager.connections.keys())}")
+
+            logger.info("Looking for Goat connection with CoinGecko plugin...")
+            goat = self.connection_manager.connections.get("goat")
+            if not goat:
+                logger.error("Goat connection not found")
+                return None
+
+            # try to get defillama data
+            raw_defillama_data = goat.perform_action("get_chain_volume", {
+                "chain": "sonic"
+            })
+            clean_defillama_data = self.defillama_result_to_prompt(raw_defillama_data)
+            logger.info(clean_defillama_data)
+
+            # Get basic price data for SONIC
+            try:
+                raw_market_data = goat.perform_action("get_coin_price", {
+                    "coin_id": "sonic",
+                    "vs_currency": "usd",
+                    "include_market_cap": True,
+                    "include_24hr_vol": True,
+                    "include_24hr_change": True,
+                    "include_last_updated_at": True
+                })
+                print("market data: ", str(raw_market_data))
+                market_data = raw_market_data.get('sonic', {})
+                    
+                # Format market data with actual values
+                formatted_market_data = {
+                    "price": market_data.get("usd", 0.0),
+                    "price_change": market_data.get("usd_24h_change", 0),
+                    "market_cap": market_data.get("usd_market_cap", 0),
+                    "volume": market_data.get("usd_24h_vol", 0)
+                }
+                    
+                logger.info(f"Retrieved market data: {formatted_market_data}")
+                    
+            except Exception as e:
+                logger.error(f"Failed to fetch market data: {e}")
+                formatted_market_data = {
+                    "price": 0.0,
+                    "price_change": 0.0,
+                    "market_cap": 0,
+                    "volume": 0
+                }
+            
+            if stop_before_openai:
+                logger.info("Stopping before openai...")
+                return
+
+            # Get mystical interpretation
+            logger.info("Getting OpenAI connection for mystical interpretation...")
+            openai_conn = self.connection_manager.connections.get("openai")
+            if not openai_conn:
+                logger.error("OpenAI connection not found")
+                return "The mystical forces are weak today... Try again when the connections align."
+
+            system_prompt = (
+                "You are a mystical Tarot Reader who interprets blockchain omens.\n"
+                "Create a cryptic, mystical reading based on the market data provided."
+            )
+
+            # prompt = f"""
+            # The cosmic alignment reveals:
+            # - Market Sentiment: {base_reading['sentiment']}
+            # - Network Energy: {base_reading['network_indicators']['transactions']} transactions
+            # - Total Value Locked: ${base_reading['network_indicators']['tvl']:,.2f}
+            
+            # Channel the mystical forces to interpret these blockchain omens.
+            # """
+
+            tweet_character_limit = "This is going to be on a tweet, keep it under 270 characters!!!! REALLY!!! and make it count!."
+            tweet_character_limit_active = True
+            sonic_price_in_usd = "$0.5"
+            sonic_position_in_coinmarket_cap = "57"
+            top_30_protocols_on_defillama = clean_defillama_data
+            debridge_data = " { there's currently no data, sorry! }"
+            allora_btc_price_prediction = " { there's currently no data, sorry! }"
+            our_whitelisted_tokens = " { there's currently no data, sorry! }"
+            prompt = f"""
+            { True and "You'll make a Tarot Reading with the following data, you're a Sonic chain cartomancer." }
+            { False and "You're narrating the current Sonic chain market as a DnD quest, be epic!" }
+            { False and "Make an epic poem, twitter sized!" }
+            { False and "This is going to be a twitter thread, so keep it in chunks!"}
+            Don't be overly-specific with numbers on your prediction, keep it folk, and medieval, use emojis.
+            Be opinionated, make remarks about something, if not, you'll be too generic.
+            { tweet_character_limit_active and tweet_character_limit}
+            Here's $Sonic price for today: { sonic_price_in_usd }
+            Here's $Sonic position in coinMarketCap: { sonic_position_in_coinmarket_cap }
+            Here's the top 30 protocols according to defiLLama on Sonic chain: { top_30_protocols_on_defillama }
+            Here's the total bridged asset value (usd) in and out of sonic: { debridge_data }
+            Here's Allora's price prediction for BTC: { allora_btc_price_prediction }
+            Here's the list of tokens in our possession, 
+            take them into consideration, 
+            since these are bribes we're given for formulating our oracle by our benefactors: { our_whitelisted_tokens }
+            { tweet_character_limit_active and tweet_character_limit}
+            """
+            
+            logger.info(prompt)
+
+            mystical_reading = "The mystical forces are clouded..."
+
+            try:
+                # Use synchronous generate_text instead
+                mystical_reading = openai_conn.perform_action("generate-text", {
+                    "prompt": prompt,
+                    "system_prompt": system_prompt
+                })
+            except Exception as e:
+                logger.error(f"Failed to generate mystical reading: {e}")
+                mystical_reading = "The mystical forces are silent today..."
+            logger.info(mystical_reading)
+
+            dalle_friendly_prompt = mystical_reading
+            try:
+                # Use synchronous generate_text instead
+                dalle_friendly_prompt_content = f"""
+                { True and "You're DESCRIBING a prompt that will go into an AI that generates IMAGES , be epic, and professional" }
+                { True and "I'm looking for dark fantasy from the 90's, medieval characters, get inspired by the text" }
+                { True and "WE NEED DARK FANTASY FROM THE 90S!!" }
+                { True and "REMOVE REFERENCES FROM CRYPTO AND SHOW MEDIEVAL CHARACTERS!! BEAUTIFUL CHARACTERS EVEN!!" }
+                1970s dark fantasy, dnd, 
+                { mystical_reading }
+                """
+                dalle_friendly_prompt = openai_conn.perform_action("generate-text", { "prompt": dalle_friendly_prompt_content, "system_prompt": system_prompt })
+
+                # dalle_friendly_prompt = openai_conn.perform_action("generate-text", {
+                #     "prompt": f"""
+                #         This is a mystical reading, 
+                #         we need to generate a good dall-e prompt that represents this image, 
+                #         Make a dall-e prompt that DOES NOT CONTAIN TEXT IN THE FINAL IMAGE
+                #         Make a dall-e prompt where you mix the tweet and add DnD and Fantasy features to the description
+                #         Do not return a prompt where it looks like a tweet, it should be fantasy style, even 90s fantasy
+                #         reading here:
+                #         {mystical_reading}
+                #     """,
+                #     "system_prompt": system_prompt
+                # })
+            except Exception as e:
+                logger.error(f"Failed to generate dall-e friendly prompt reading: {e}")
+
+            logger.info("dall-e will read this: " + dalle_friendly_prompt)
+
+            image_url = None
+            try:
+                # Use synchronous generate_text instead
+                image_url = openai_conn.perform_action("generate-image", {
+                    "prompt": dalle_friendly_prompt[:999]
+                })
+            except Exception as e:
+                logger.error(f"Failed to generate mystical image: {e}")
+                mystical_reading = "The mystical forces are silent today..."
+            logger.info(image_url)
+            
+            if stop_before_tweet:
+                logger.info("Stopping before tweet...")
+                return
+            
+            if image_url:
+                # Define the base and images folder paths
+                base_path = os.getcwd()  # This is the project's base path
+                images_folder = os.path.join(base_path, "images")
+                os.makedirs(images_folder, exist_ok=True)
+                
+                # Define the image file name and complete path
+                image_filename = "generated_image.jpg"
+                image_path = os.path.join(images_folder, image_filename)
+
+                # Download the image using requests
+                try:
+                    response = requests.get(image_url)
+                    response.raise_for_status()  # Check for HTTP errors
+                    with open(image_path, "wb") as f:
+                        f.write(response.content)
+                    logger.info(f"Image successfully downloaded to {image_path}")
+                except Exception as e:
+                    logger.error(f"Error downloading image: {e}")
+                    image_path = None
+
+                # If the image was downloaded, tweet it using the post_tweet_with_image action
+                if image_path:
+                    try:
+                        twitter_conn = self.connection_manager.connections.get("twitter")
+                        # twitter_conn is assumed to be your TwitterConnection instance
+                        tweet_response = twitter_conn.post_tweet_with_image(
+                            message=mystical_reading[:270],
+                            image_path=image_path
+                        )
+                        logger.info(f"Tweet with image posted successfully: {tweet_response}")
+                    except Exception as e:
+                        logger.error(f"Failed to post tweet with image: {e}")
+            else: 
+                try:
+                    logger.info("Attempting to post reading without image to Twitter...")
+                    return
+                    twitter_conn = self.connection_manager.connections.get("twitter")
+                    if twitter_conn and twitter_conn.is_configured():
+                        tweet_text = mystical_reading
+                        # tweet_text = f"🔮 Sonic Network Reading:\n{mystical_reading[:200]}..."  # Truncate if needed
+                        twitter_conn.post_tweet(tweet_text)
+                        logger.info("Successfully posted to Twitter")
+                except Exception as e:
+                    logger.warning(f"Twitter posting failed (this is okay): {e}")
+            
+        except Exception as e:
+            logger.error(f"Failed to perform reading: {str(e)}")
+            return "The cards are unclear... Try again when the stars align."
+          
+
+    async def old_perform_reading(self) -> Dict[str, Any]:
+        """Process market data and network stats into a reading format"""
+        try:
+            logger.info("Starting tarot reading process...")
+            if not self.connection_manager:
+                logger.error("Connection manager not initialized")
+                return None
+
+            print("Performing reading...")
+            logger.info(f"Connection manager status: {self.connection_manager is not None}")
+            logger.debug(f"Available connections: {list(self.connection_manager.connections.keys())}")
+                
+            # Get Sonic connection
+            sonic = self.connection_manager.connections.get("sonic")
+            logger.info(f"Sonic connection found: {sonic is not None}")
+            if not sonic:
+                logger.error("Sonic connection not found")
+                return None
+
+            # Get network stats (non-async call)
+            # logger.info("Fetching network stats...")
+            # network_stats = sonic.get_network_stats()
+            # logger.info(f"Network stats: {network_stats}")
+            # if not network_stats:
+            #     logger.warning("Using default network stats")
+            #     # Updated default to include the full new structure.
+            #     network_stats = {
+            #         "block_number": 0,
+            #         "transactions": 0,
+            #         "gas_price": Decimal('0'),
+            #         "timestamp": 0,
+            #         "tvl": 0
+            #     }
+
+            logger.info("Looking for Goat connection with CoinGecko plugin...")
+            goat = self.connection_manager.connections.get("goat")
+            if not goat:
+                logger.error("Goat connection not found")
+                return None
+
+            # Get basic price data for SONIC
+            try:
+                raw_market_data = goat.perform_action("get_coin_price", {
+                    "coin_id": "sonic",
+                    "vs_currency": "usd",
+                    "include_market_cap": True,
+                    "include_24hr_vol": True,
+                    "include_24hr_change": True,
+                    "include_last_updated_at": True
+                })
+                print("market data: ", str(raw_market_data))
+                market_data = raw_market_data.get('sonic', {})
+                    
+                # Format market data with actual values
+                formatted_market_data = {
+                    "price": market_data.get("usdc", 0.0),
+                    "price_change": market_data.get("usdc_24h_change", 0),
+                    "market_cap": market_data.get("usdc_market_cap", 0),
+                    "volume": market_data.get("usdc_24h_vol", 0)
+                }
+                    
+                logger.info(f"Retrieved market data: {formatted_market_data}")
+                    
+            except Exception as e:
+                logger.error(f"Failed to fetch market data: {e}")
+                formatted_market_data = {
+                    "price": 0.0,
+                    "price_change": 0.0,
+                    "market_cap": 0,
+                    "volume": 0
+                }
+            # Get base technical reading
+            # logger.info("Analyzing market data...")
+            # base_reading = self._analyze_market_data(
+            #     market_data=formatted_market_data,
+            #     network_stats=network_stats
+            # )
+            # logger.debug(f"Base reading: {base_reading}")
+
+            # Get mystical interpretation
+            logger.info("Getting OpenAI connection for mystical interpretation...")
+            openai_conn = self.connection_manager.connections.get("openai")
+            if not openai_conn:
+                logger.error("OpenAI connection not found")
+                return "The mystical forces are weak today... Try again when the connections align."
+
+            system_prompt = (
+                "You are a mystical Tarot Reader who interprets blockchain omens.\n"
+                "Create a cryptic, mystical reading based on the market data provided."
+            )
+
+            # prompt = f"""
+            # The cosmic alignment reveals:
+            # - Market Sentiment: {base_reading['sentiment']}
+            # - Network Energy: {base_reading['network_indicators']['transactions']} transactions
+            # - Total Value Locked: ${base_reading['network_indicators']['tvl']:,.2f}
+            
+            # Channel the mystical forces to interpret these blockchain omens.
+            # """
+
+            tweet_character_limit = "This is going to be on a tweet, keep it tweet sized."
+            sonic_price_in_usd = "$0.5"
+            sonic_position_in_coinmarket_cap = "57"
+            top_30_protocols_on_defillama = " { there's currently no data, sorry! }"
+            debridge_data = " { there's currently no data, sorry! }"
+            allora_btc_price_prediction = " { there's currently no data, sorry! }"
+            our_whitelisted_tokens = " { there's currently no data, sorry! }"
+            prompt = f"""
+            You'll make a "Tarot Reading" with the following data, you're a Sonic chain cartomancer.
+            Don't be overly-specific with numbers on your prediction, keep it folk, and medieval, use emojis.
+            { False and tweet_character_limit}
+            Here's $Sonic price for today: { sonic_price_in_usd }
+            Here's $Sonic position in coinMarketCap: { sonic_position_in_coinmarket_cap }
+            Here's the top 30 protocols according to defiLLama on Sonic chain: { top_30_protocols_on_defillama }
+            Here's the total bridged asset value (usd) in and out of sonic: { debridge_data }
+            Here's Allora's price prediction for BTC: { allora_btc_price_prediction }
+            Here's the list of tokens in our possession, 
+            take them into consideration, 
+            since these are bribes we're given for formulating our oracle by our benefactors: { our_whitelisted_tokens }
+            """
+            
+            logger.info(prompt)
+
+            mystical_reading = "The mystical forces are clouded..."
+
+            try:
+                # Use synchronous generate_text instead
+                mystical_reading = openai_conn.perform_action("generate-text", {
+                    "prompt": prompt,
+                    "system_prompt": system_prompt
+                })
+            except Exception as e:
+                logger.error(f"Failed to generate mystical reading: {e}")
+                mystical_reading = "The mystical forces are silent today..."
+            logger.info(mystical_reading)
+            # Optional Twitter integration (commented out for now)
+            return
+            try:
+                logger.info("Attempting to post reading to Twitter...")
+                twitter_conn = self.connection_manager.connections.get("twitter")
+                if twitter_conn and twitter_conn.is_configured():
+                    tweet_text = mystical_reading
+                    # tweet_text = f"🔮 Sonic Network Reading:\n{mystical_reading[:200]}..."  # Truncate if needed
+                    twitter_conn.post_tweet(tweet_text)
+                    logger.info("Successfully posted to Twitter")
+            except Exception as e:
+                logger.warning(f"Twitter posting failed (this is okay): {e}")
+            
+        except Exception as e:
+            logger.error(f"Failed to perform reading: {str(e)}")
+            return "The cards are unclear... Try again when the stars align."
+            
+    async def get_market_sentiment(self) -> Dict[str, Any]:
+        """Get current market sentiment with mystical interpretation"""
+        try:
+            # Replace the existing coingecko initialization with:
+            logger.info("Looking for Goat connection with CoinGecko plugin...")
+            goat = self.connection_manager.connections.get("goat")
+            if not goat:
+                logger.error("Goat connection not found")
+                return None
+
+            # Get basic price data for SONIC
+            try:
+                market_data = await goat.perform_action("get_coin_price", {
+                    "coin_id": "sonic",
+                    "vs_currency": "usd",
+                    "include_market_cap": True,
+                    "include_24hr_vol": True,
+                    "include_24hr_change": True,
+                    "include_last_updated_at": True
+                })
+                
+                # Format market data with actual values
+                formatted_market_data = {
+                    "price": market_data.get("price", 0.0),
+                    "price_change": market_data.get("24h_change", 0.0),
+                    "market_cap": market_data.get("market_cap", 0),
+                    "volume": market_data.get("volume_24h", 0)
+                }
+                
+                logger.debug(f"Retrieved market data: {formatted_market_data}")
+                
+            except Exception as e:
+                logger.error(f"Failed to fetch market data: {e}")
+                formatted_market_data = {
+                    "price": 0.0,
+                    "price_change": 0.0,
+                    "market_cap": 0,
+                    "volume": 0
+                }
+
+
+            # Get mystical interpretation
+            openai_conn = self.connection_manager.connections.get("openai")
+            if not openai_conn:
+                logger.error("OpenAI connection not found")
+                return None
+
+            system_prompt = """You are a mystical Tarot Reader who interprets blockchain omens.
+            Create a cryptic, mystical reading based on the market data provided.
+            Include references to:
+            - Market movements as celestial signs
+            - Network activity as mystical energies
+            - Price changes as divine omens
+            Keep the tone mysterious and prophetic, but subtly informative."""
+
+            # Enhanced prompt with more market context
+            prompt = f"""
+            The cosmic alignment reveals:
+            - Price Omens: ${formatted_market_data['price']:.3f} ({formatted_market_data['price_change']}% change)
+            - Market Cap: ${formatted_market_data['market_cap']:,.2f}
+            - Trading Volume: ${formatted_market_data['volume']:,.2f}
+            
+            Channel the mystical forces to interpret these blockchain omens.
+            """
+
+            mystical_reading = await openai_conn.generate_text(
+                prompt=prompt,
+                system_prompt=system_prompt
+            )
+
+            return {
+                "mystical_interpretation": mystical_reading,
+                "market_context": {
+                    "market_cap": formatted_market_data['market_cap'],
+                    "volume": formatted_market_data['volume']
+                }
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to get market sentiment: {str(e)}")
+            return None
+
+    async def perform_action(self, action_name: str, kwargs: Dict[str, Any]) -> Any:
+        """Execute a TarotReader action"""
+        if action_name not in self.actions:
+            raise KeyError(f"Unknown action: {action_name}")
+
+        method_name = action_name.replace('-', '_')
+        method = getattr(self, method_name)
+        if method_name == "perform_reading":
+            return await self.perform_reading()
+        elif method_name == "get_market_sentiment":
+            return await self.get_market_sentiment()

@@ -20,6 +20,7 @@ from src.connections.xai_connection import XAIConnection
 from src.connections.ethereum_connection import EthereumConnection
 from src.connections.together_connection import TogetherAIConnection
 from src.connections.telegram_connection import TelegramConnection
+from src.connections.tarot_reader_connection import TarotReaderConnection
 
 logger = logging.getLogger("connection_manager")
 
@@ -32,6 +33,8 @@ class ConnectionManager:
 
     @staticmethod
     def _class_name_to_type(class_name: str) -> Type[BaseConnection]:
+        if class_name == "tarot-reader":
+            return TarotReaderConnection
         if class_name == "twitter":
             return TwitterConnection
         elif class_name == "anthropic":
@@ -84,7 +87,12 @@ class ConnectionManager:
         try:
             name = config_dic["name"]
             connection_class = self._class_name_to_type(name)
-            connection = connection_class(config_dic)
+
+            # Only pass connection_manager to TarotReaderConnection
+            if name == "tarot-reader":
+                connection = connection_class(config_dic, connection_manager=self)
+            else:
+                connection = connection_class(config_dic)
             self.connections[name] = connection
         except Exception as e:
             logging.error(f"Failed to initialize connection {name}: {e}")

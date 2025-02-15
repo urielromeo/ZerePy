@@ -433,6 +433,33 @@ class TwitterConnection(BaseConnection):
         return tweets
 
 
+    def post_tweet_with_image(self, message: str, image_path: str, **kwargs) -> dict:
+        logger.debug("Posting tweet with image")
+        self._validate_tweet_text(message)
+        media_id = self.upload_media(image_path)
+        response = self._make_request('post', 'tweets', json={
+            'text': message,
+            'media': {'media_ids': [media_id]}
+        })
+        logger.info("Tweet with image posted successfully")
+        return response
+
+
+    def upload_media(self, image_path: str) -> str:
+        logger.debug(f"Uploading media from {image_path}")
+        oauth = self._get_oauth()
+        upload_url = "https://upload.twitter.com/1.1/media/upload.json"
+        with open(image_path, 'rb') as file:
+            files = {'media': file}
+            response = oauth.post(upload_url, files=files)
+        if response.status_code != 200:
+            logger.error(f"Media upload failed: {response.status_code} {response.text}")
+            raise TwitterAPIError("Media upload failed")
+        media_id = response.json().get("media_id_string")
+        logger.debug(f"Media uploaded, media_id: {media_id}")
+        return media_id
+
+
     def post_tweet(self, message: str, **kwargs) -> dict:
         """Post a new tweet"""
         logger.debug("Posting new tweet")

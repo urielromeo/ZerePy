@@ -29,12 +29,12 @@ class Action:
         return errors
 
 class BaseConnection(ABC):
-    def __init__(self, config):
+    def __init__(self, config, connection_manager=None):
         try:
-            # Dictionary to store action name -> handler method mapping
             self.actions: Dict[str, Callable] = {}
-            # Dictionary to store some essential configuration
             self.config = self.validate_config(config) 
+            # Store connection_manager before validating config
+            self.connection_manager = connection_manager
             # Register actions during initialization
             self.register_actions()
         except Exception as e:
