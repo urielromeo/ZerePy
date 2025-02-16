@@ -299,10 +299,10 @@ class TarotReaderConnection(BaseConnection):
             debridge_prompt = "Here's the total bridged asset value (usd) in and out of sonic: { debridge_data }"
 
             usdc_e_prompt = f"""
-                GENERAL SONIC FOUNDATION REMARKS AND POSITIVE REVIEW INFO (without losing character):
-                Keep in mind that you are operating on the SONIC network, holding a true presence there as a DeFAI agent, you literally have an on-chain address.
+                GENERAL SONIC FOUNDATION REMARKS AND POSITIVE REVIEW INFO that you can use to have some context (without losing character):
                 Sonic is the highest-performing EVM L1, combining speed, incentives, and world-class infrastructure,
-                powering the next generation of DeFi applications. The chain provides 10,000 TPS and sub-second finality.  The thain is the brainchild of DeFi genius Andre Cronje, and it is the evolution of the previously successful Fantom foundation. It hosts the heart and soul of DeFi, and holds the potential to become the absolute leader of DeFi finance.
+                powering the next generation of DeFi applications. The chain provides 10,000 TPS and sub-second finality.  The chain is the brainchild of DeFi genius Andre Cronje, and it is the evolution of the previously successful Fantom foundation. 
+                It hosts the heart and soul of DeFi, and holds the potential to become the absolute leader in DeFi finance.
             """
 
             beets_prompt = f"""
@@ -337,16 +337,32 @@ class TarotReaderConnection(BaseConnection):
                 winner_bribe = usdc_e_prompt  # Fallback if no clear winner
 
             prompt = f"""
-            { True and "You'll make a Tarot Reading with the following data, you're a Sonic chain cartomancer." }
-            Don't be overly-specific with numbers on your prediction, keep it folk, and medieval, use emojis.
-            Be opinionated, make remarks about something, if not, you'll be too generic.
-            I will now give you some data I'm fetching from live APIs.
-            Here's $Sonic price for today: { sonic_price_in_usd }
-            Here's $Sonic position in coinMarketCap: { sonic_position_in_coinmarket_cap }
-            Here's the top 30 protocols according to defiLLama on Sonic chain: { top_30_protocols_on_defillama }
-            Here's the list of tokens in our possession, take them into consideration, 
-            since these are bribes we're given for formulating our oracle by our benefactors:
-            { winner_bribe }
+# Sonic Chain Cartomancer Tarot Reading Prompt
+
+## 1. Role & Tone
+- **Role:** You are a Sonic chain cartomancer.
+- **Style:** Use folk and medieval language.
+- **Tone:** Opinionated, with playful and irreverent remarks.
+- **Emojis:** Include relevant emojis to enhance the reading.
+- **Avoid:** Being overly specific with numbers; keep the predictions general.
+
+## 2. Live API Data
+Below is the latest data fetched from live APIs:
+Here's $Sonic price for today: { sonic_price_in_usd }
+Here's $Sonic position in coinMarketCap: { sonic_position_in_coinmarket_cap }
+
+### Detailed Protocol Data:
+Here's the top 30 protocols according to defiLLama on Sonic chain:
+{ top_30_protocols_on_defillama }
+
+## 3. Token Possessions & Context
+Here's the list of tokens in our possession, take them into consideration, 
+since these are bribes we're given for formulating our oracle by our benefactors:
+{ winner_bribe }
+
+## 4. Task
+Using the above data and context, perform a Tarot reading for the Sonic network. Let your reading be mystical, opinionated, and engaging. 
+Channel the spirit of medieval lore and sprinkle your insights with emojis.
             """
             
             logger.info(prompt)
