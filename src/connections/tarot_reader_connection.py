@@ -233,22 +233,20 @@ class TarotReaderConnection(BaseConnection):
             print("BEETS:", beets_weight_description)
 
             # try to get defillama data
-            raw_defillama_data = goat.perform_action("get_chain_volume", {
-                "chain": "sonic"
-            })
+            raw_defillama_data = goat.perform_action("get_chain_volume", chain ="sonic")
             clean_defillama_data = self.defillama_result_to_prompt(raw_defillama_data)
             logger.info(clean_defillama_data)
 
             # Get basic price data for SONIC
             try:
-                raw_market_data = goat.perform_action("get_coin_price", {
-                    "coin_id": "sonic",
-                    "vs_currency": "usd",
-                    "include_market_cap": True,
-                    "include_24hr_vol": True,
-                    "include_24hr_change": True,
-                    "include_last_updated_at": True
-                })
+                raw_market_data = goat.perform_action("get_coin_price",
+                    coin_id= "sonic",
+                    vs_currency= "usd",
+                    include_market_cap= True,
+                    include_24hr_vol= True,
+                    include_24hr_change= True,
+                    include_last_updated_at= True
+                )
                 print("market data: ", str(raw_market_data))
                 market_data = raw_market_data.get('sonic', {})
                     
@@ -492,14 +490,14 @@ class TarotReaderConnection(BaseConnection):
 
             # Get basic price data for SONIC
             try:
-                raw_market_data = goat.perform_action("get_coin_price", {
-                    "coin_id": "sonic",
-                    "vs_currency": "usd",
-                    "include_market_cap": True,
-                    "include_24hr_vol": True,
-                    "include_24hr_change": True,
-                    "include_last_updated_at": True
-                })
+                raw_market_data = goat.perform_action("get_coin_price",
+                    coin_id= "sonic",
+                    vs_currency= "usd",
+                    include_market_cap= True,
+                    include_24hr_vol= True,
+                    include_24hr_change= True,
+                    include_last_updated_at= True
+                )
                 print("market data: ", str(raw_market_data))
                 market_data = raw_market_data.get('sonic', {})
                     
