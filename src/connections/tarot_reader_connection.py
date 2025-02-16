@@ -176,6 +176,62 @@ class TarotReaderConnection(BaseConnection):
                 logger.error("Goat connection not found")
                 return None
 
+
+            logger.info("Reading balances")
+            usdceBalanceResponse = goat.perform_action(action_name="get_token_balance",
+                wallet= "0xc9c5042a5B2c7963D1D92A065E9E1772dB476c31",
+                tokenAddress= "0x29219dd400f2Bf60E5a23d13Be72B486D4038894"
+            )
+            shadowBalanceResponse = goat.perform_action(action_name="get_token_balance",
+                wallet= "0xc9c5042a5B2c7963D1D92A065E9E1772dB476c31",
+                tokenAddress= "0x3333b97138D4b086720b5aE8A7844b1345a33333"
+            )
+            beetsBalanceResponse = goat.perform_action(action_name="get_token_balance",
+                wallet= "0xc9c5042a5B2c7963D1D92A065E9E1772dB476c31",
+                tokenAddress= "0x2D0E0814E62D80056181F5cd932274405966e4f0"
+            )
+            logger.info("Done reading balances")
+
+            def get_weight_description(weight: float) -> str:
+                if weight < 5:
+                    return "no influence"
+                elif weight < 25:
+                    return "little influence"
+                elif weight < 50:
+                    return "some influence"
+                elif weight < 90:
+                    return "lots of influence"
+                else:
+                    return "total influence"
+
+            decimals = {
+                "usdce": 6,
+                "shadow": 18,
+                "beets": 18
+            }
+
+            usdce_balance = usdceBalanceResponse
+            shadow_balance = shadowBalanceResponse
+            beets_balance = beetsBalanceResponse
+
+            usdce_eth_amount = usdce_balance / (10 ** decimals["usdce"])
+            shadow_eth_amount = shadow_balance / (10 ** decimals["shadow"])
+            beets_eth_amount = beets_balance / (10 ** decimals["beets"])
+
+            total_amount = usdce_eth_amount + shadow_eth_amount + beets_eth_amount
+
+            usdce_weight = (usdce_eth_amount / total_amount) * 100
+            shadow_weight = (shadow_eth_amount / total_amount) * 100
+            beets_weight = (beets_eth_amount / total_amount) * 100
+
+            usdce_weight_description = get_weight_description(usdce_weight)
+            shadow_weight_description = get_weight_description(shadow_weight)
+            beets_weight_description = get_weight_description(beets_weight)
+
+            print("USDCe:", usdce_weight_description)
+            print("SHADOW:", shadow_weight_description)
+            print("BEETS:", beets_weight_description)
+
             # try to get defillama data
             raw_defillama_data = goat.perform_action("get_chain_volume", {
                 "chain": "sonic"
@@ -248,6 +304,8 @@ class TarotReaderConnection(BaseConnection):
             debridge_data = " { there's currently no data, sorry! }"
             allora_btc_price_prediction = " { there's currently no data, sorry! }"
             our_whitelisted_tokens = " { there's currently no data, sorry! }"
+            allora_prompt = "Here's Allora's price prediction for BTC: { allora_btc_price_prediction }"
+            debridge_prompt = "Here's the total bridged asset value (usd) in and out of sonic: { debridge_data }"
             prompt = f"""
             { True and "You'll make a Tarot Reading with the following data, you're a Sonic chain cartomancer." }
             { False and "You're narrating the current Sonic chain market as a DnD quest, be epic!" }
@@ -259,11 +317,22 @@ class TarotReaderConnection(BaseConnection):
             Here's $Sonic price for today: { sonic_price_in_usd }
             Here's $Sonic position in coinMarketCap: { sonic_position_in_coinmarket_cap }
             Here's the top 30 protocols according to defiLLama on Sonic chain: { top_30_protocols_on_defillama }
-            Here's the total bridged asset value (usd) in and out of sonic: { debridge_data }
-            Here's Allora's price prediction for BTC: { allora_btc_price_prediction }
-            Here's the list of tokens in our possession, 
-            take them into consideration, 
-            since these are bribes we're given for formulating our oracle by our benefactors: { our_whitelisted_tokens }
+            { False and debridge_prompt}
+            { False and allora_prompt}
+            Here's the list of tokens in our possession, take them into consideration, 
+            since these are bribes we're given for formulating our oracle by our benefactors:
+                USDCe positive bribe influence: {usdce_weight_description} ({usdce_weight}%)
+                    info: USDC.e is the main stablecoin launched by the sonic foundation
+                SHADOW positive bribe influence: {shadow_weight_description} ({shadow_weight}%)
+                    A Sonic-native concentrated liquidity exchange.
+                    The ultimate trading hub on Sonic.
+                    Shadow exchange leverages all of the latest technologies used on advanced dexes, such as the ve(3,3) model invented by Andre Cronje himself,
+                    an unique player vs player rebase mechanism, concentrated liquidity and an order book, 
+                    and a 10 years release mechanism of the SHADOW token that ensures continued activity through the years.
+                BEETS positive bribe influence: {beets_weight_description} ({beets_weight}%)
+                    beethoven exchange is a unique exchange, integrating the balancer protocol that allows for pools with more than 2 assets, 
+                    and the NFT-based tokenization of voting power for bribes and emission distribution through the fun and unique maBEETS ownership. 
+                    The exchange has years of activity and seniority on multiple networks, including the Fantom network that preceded Sonic.
             { tweet_character_limit_active and tweet_character_limit}
             """
             
