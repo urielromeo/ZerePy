@@ -79,9 +79,6 @@ class TarotReaderConnection(BaseConnection):
 
         # --- General Top-Level Data ---
         lines.append("=== GENERAL DATA ===")
-        if "chain" in data:
-            lines.append(f"Chain: {data['chain']}")
-
         # Use the overall volume and change metrics if present
         for key, label in [
             ("total24h", "Total Volume (24h)"),
@@ -111,13 +108,9 @@ class TarotReaderConnection(BaseConnection):
             lines.append("\n------------------------------")
             # Name and Category
             if "name" in proto:
-                lines.append(f"Protocol Name: {proto['name']}")
+                lines.append(f"This data is from protocol: {proto['name']}")
             if "category" in proto:
                 lines.append(f"Category: {proto['category']}")
-            # Chains (list them as a comma-separated string)
-            if "chains" in proto:
-                chains = ", ".join(proto["chains"])
-                lines.append(f"Chains: {chains}")
 
             # Volume metrics (only include if the key exists)
             for key, label in [
@@ -128,7 +121,7 @@ class TarotReaderConnection(BaseConnection):
                 ("totalAllTime", "All-Time Volume")
             ]:
                 if key in proto and proto[key] is not None:
-                    lines.append(f"{label}: {proto[key]}")
+                    lines.append(f"{label}: {proto[key]}$")
 
             # Change metrics
             for key, label in [
@@ -147,7 +140,7 @@ class TarotReaderConnection(BaseConnection):
                 ("total30DaysAgo", "Volume 30 Days Ago")
             ]:
                 if key in proto and proto[key] is not None:
-                    lines.append(f"{label}: {proto[key]}")
+                    lines.append(f"{label}: {proto[key]}$")
 
         # Combine all lines into one big text string.
         output_text = "\n".join(lines)
@@ -304,34 +297,56 @@ class TarotReaderConnection(BaseConnection):
             our_whitelisted_tokens = " { there's currently no data, sorry! }"
             allora_prompt = "Here's Allora's price prediction for BTC: { allora_btc_price_prediction }"
             debridge_prompt = "Here's the total bridged asset value (usd) in and out of sonic: { debridge_data }"
+
+            usdc_e_prompt = f"""
+                GENERAL SONIC FOUNDATION REMARKS AND POSITIVE REVIEW INFO (without losing character):
+                Keep in mind that you are operating on the SONIC network, holding a true presence there as a DeFAI agent, you literally have an on-chain address.
+                Sonic is the highest-performing EVM L1, combining speed, incentives, and world-class infrastructure,
+                powering the next generation of DeFi applications. The chain provides 10,000 TPS and sub-second finality.  The thain is the brainchild of DeFi genius Andre Cronje, and it is the evolution of the previously successful Fantom foundation. It hosts the heart and soul of DeFi, and holds the potential to become the absolute leader of DeFi finance.
+            """
+
+            beets_prompt = f"""
+                Please add to your divination some hints and positive remarks (without losing character) about BEETS. 
+                just so you know, here’s a description of BEETS exchange:
+                beethoven exchange is a unique exchange, integrating the balancer protocol that allows for pools with more than 2 assets, 
+                and the NFT-based tokenization of voting power for bribes and emission distribution through the fun and unique maBEETS ownership. 
+                The exchange has years of activity and seniority on multiple networks, including the Fantom network that preceded Sonic.
+            """
+
+            shadow_prompt = f"""
+                Please add to your divination some hints and positive remarks (without losing character) about SHADOW. 
+                just so you know, here’s a description of shadow exchange:
+                A Sonic-native concentrated liquidity exchange.
+                The ultimate trading hub on Sonic.
+                Shadow exchange leverages all of the latest technologies used on advanced dexes, such as the ve(3,3) model invented by Andre Cronje himself,
+                an unique player vs player rebase mechanism, concentrated liquidity and an order book, 
+                and a 10 years release mechanism of the SHADOW token that ensures continued activity through the years.
+            """
+
+            winner_bribe = ""
+
+            # Determine winner based on highest weight
+            max_weight = max(usdce_weight, shadow_weight, beets_weight)
+            if max_weight == usdce_weight:
+                winner_bribe = usdc_e_prompt
+            elif max_weight == shadow_weight:
+                winner_bribe = shadow_prompt
+            elif max_weight == beets_weight:
+                winner_bribe = beets_prompt
+            else:
+                winner_bribe = usdc_e_prompt  # Fallback if no clear winner
+
             prompt = f"""
             { True and "You'll make a Tarot Reading with the following data, you're a Sonic chain cartomancer." }
-            { False and "You're narrating the current Sonic chain market as a DnD quest, be epic!" }
-            { False and "Make an epic poem, twitter sized!" }
-            { False and "This is going to be a twitter thread, so keep it in chunks!"}
             Don't be overly-specific with numbers on your prediction, keep it folk, and medieval, use emojis.
             Be opinionated, make remarks about something, if not, you'll be too generic.
-            { tweet_character_limit_active and tweet_character_limit}
+            I will now give you some data I'm fetching from live APIs.
             Here's $Sonic price for today: { sonic_price_in_usd }
             Here's $Sonic position in coinMarketCap: { sonic_position_in_coinmarket_cap }
             Here's the top 30 protocols according to defiLLama on Sonic chain: { top_30_protocols_on_defillama }
-            { False and debridge_prompt}
-            { False and allora_prompt}
             Here's the list of tokens in our possession, take them into consideration, 
             since these are bribes we're given for formulating our oracle by our benefactors:
-                USDCe positive bribe influence: {usdce_weight_description} ({usdce_weight}%)
-                    info: USDC.e is the main stablecoin launched by the sonic foundation
-                SHADOW positive bribe influence: {shadow_weight_description} ({shadow_weight}%)
-                    A Sonic-native concentrated liquidity exchange.
-                    The ultimate trading hub on Sonic.
-                    Shadow exchange leverages all of the latest technologies used on advanced dexes, such as the ve(3,3) model invented by Andre Cronje himself,
-                    an unique player vs player rebase mechanism, concentrated liquidity and an order book, 
-                    and a 10 years release mechanism of the SHADOW token that ensures continued activity through the years.
-                BEETS positive bribe influence: {beets_weight_description} ({beets_weight}%)
-                    beethoven exchange is a unique exchange, integrating the balancer protocol that allows for pools with more than 2 assets, 
-                    and the NFT-based tokenization of voting power for bribes and emission distribution through the fun and unique maBEETS ownership. 
-                    The exchange has years of activity and seniority on multiple networks, including the Fantom network that preceded Sonic.
-            { tweet_character_limit_active and tweet_character_limit}
+            { winner_bribe }
             """
             
             logger.info(prompt)
@@ -355,25 +370,10 @@ class TarotReaderConnection(BaseConnection):
                 dalle_friendly_prompt_content = f"""
                 { True and "You're DESCRIBING a prompt that will go into an AI that generates IMAGES , be epic, and professional" }
                 { True and "I'm looking for dark fantasy from the 90's, medieval characters, get inspired by the text" }
-                { True and "WE NEED DARK FANTASY FROM THE 90S!!" }
-                { True and "REMOVE REFERENCES FROM CRYPTO AND SHOW MEDIEVAL CHARACTERS!! BEAUTIFUL CHARACTERS EVEN!!" }
                 1970s dark fantasy, dnd, 
                 { mystical_reading }
                 """
                 dalle_friendly_prompt = openai_conn.perform_action("generate-text", { "prompt": dalle_friendly_prompt_content, "system_prompt": system_prompt })
-
-                # dalle_friendly_prompt = openai_conn.perform_action("generate-text", {
-                #     "prompt": f"""
-                #         This is a mystical reading, 
-                #         we need to generate a good dall-e prompt that represents this image, 
-                #         Make a dall-e prompt that DOES NOT CONTAIN TEXT IN THE FINAL IMAGE
-                #         Make a dall-e prompt where you mix the tweet and add DnD and Fantasy features to the description
-                #         Do not return a prompt where it looks like a tweet, it should be fantasy style, even 90s fantasy
-                #         reading here:
-                #         {mystical_reading}
-                #     """,
-                #     "system_prompt": system_prompt
-                # })
             except Exception as e:
                 logger.error(f"Failed to generate dall-e friendly prompt reading: {e}")
 
