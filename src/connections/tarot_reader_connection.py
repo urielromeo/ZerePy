@@ -395,7 +395,8 @@ class TarotReaderConnection(BaseConnection):
                 return {
                     "image_url": image_url,
                     "reading_long": mystical_reading,
-                    "reading_short": dalle_friendly_prompt
+                    "reading_short": dalle_friendly_prompt,
+                    "prompt": prompt
                 }
             
             if image_url:
