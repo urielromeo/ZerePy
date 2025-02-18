@@ -384,10 +384,11 @@ Channel the spirit of medieval lore and sprinkle your insights with emojis.
             try:
                 # Use synchronous generate_text instead
                 dalle_friendly_prompt_content = f"""
-                { True and "You're DESCRIBING a prompt that will go into an AI that generates IMAGES , be epic, and professional" }
-                { True and "I'm looking for dark fantasy from the 90's, medieval characters, get inspired by the text" }
-                1970s dark fantasy, dnd, 
-                { mystical_reading }
+You will improve this text in order to create a dall-e prompt
+* A tarot card illustration in the Rider-Waite style, featuring a [add something here ], symbolizing [add something here ]. The figure wears [ add something here ], and [ add something here ]. A [add something here ]. The background is [add something here ], evoking [add something here ]. The illustration is hand-drawn with bold black outlines, vibrant flat colors, and subtle shading to create depth,  staying true to the classic tarot aesthetic *
+You will add a character description based on the following
+Add negative parameters to including text in the image, and we want only one card
+{ mystical_reading }
                 """
                 dalle_friendly_prompt = openai_conn.perform_action("generate-text", { "prompt": dalle_friendly_prompt_content, "system_prompt": system_prompt })
             except Exception as e:
