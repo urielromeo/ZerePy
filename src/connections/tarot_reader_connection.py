@@ -252,7 +252,6 @@ class TarotReaderConnection(BaseConnection):
                 }
                     
                 logger.info(f"Retrieved market data: {formatted_market_data}")
-                return
             except Exception as e:
                 logger.error(f"Failed to fetch market data: {e}")
                 formatted_market_data = {
@@ -372,6 +371,7 @@ Channel the spirit of medieval lore and sprinkle your insights with emojis.
             """
             
             logger.info(prompt)
+            return
 
             mystical_reading = "The mystical forces are clouded..."
 
