@@ -364,6 +364,8 @@ class TarotReaderConnection(BaseConnection):
 - **Emojis:** Include relevant emojis to enhance the reading.
 - **Avoid:** Being overly specific with numbers; keep the predictions general.
 - **Try to:** Format in a way readable for telegram and twitter.
+- **Try to:** Format big numbers (thousands or millions) with the appropiate commas.
+- **Try to:** Keep the reading engaging and mystical.
 - **Content length:** Try to stay in 1000 characters
 
 ## 2. Live API Data
