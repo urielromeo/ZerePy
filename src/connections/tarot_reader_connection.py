@@ -172,15 +172,15 @@ class TarotReaderConnection(BaseConnection):
 
             logger.info("Reading balances")
             usdceBalanceResponse = goat.perform_action(action_name="get_token_balance",
-                wallet= "0xc9c5042a5B2c7963D1D92A065E9E1772dB476c31",
+                wallet= "0x2c4a44a1a45e059b685fe49ee63023d9c7f770cf",
                 tokenAddress= "0x29219dd400f2Bf60E5a23d13Be72B486D4038894"
             )
             shadowBalanceResponse = goat.perform_action(action_name="get_token_balance",
-                wallet= "0xc9c5042a5B2c7963D1D92A065E9E1772dB476c31",
+                wallet= "0x2c4a44a1a45e059b685fe49ee63023d9c7f770cf",
                 tokenAddress= "0x3333b97138D4b086720b5aE8A7844b1345a33333"
             )
             beetsBalanceResponse = goat.perform_action(action_name="get_token_balance",
-                wallet= "0xc9c5042a5B2c7963D1D92A065E9E1772dB476c31",
+                wallet= "0x2c4a44a1a45e059b685fe49ee63023d9c7f770cf",
                 tokenAddress= "0x2D0E0814E62D80056181F5cd932274405966e4f0"
             )
             logger.info("Done reading balances")
@@ -366,7 +366,7 @@ class TarotReaderConnection(BaseConnection):
 - **Try to:** Format in a way readable for telegram and twitter.
 - **Try to:** Format big numbers (thousands or millions) with the appropiate commas.
 - **Try to:** Keep the reading engaging and mystical.
-- **Content length:** Try to stay in 1000 characters
+- **Content length:** Try to stay in 600 characters
 
 ## 2. Live API Data
 Below is the latest data fetched from live APIs:
