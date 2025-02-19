@@ -347,14 +347,15 @@ class TarotReaderConnection(BaseConnection):
 - **Tone:** Opinionated, with playful and irreverent remarks.
 - **Emojis:** Include relevant emojis to enhance the reading.
 - **Avoid:** Being overly specific with numbers; keep the predictions general.
+- **Try to:** Format in a way readable for telegram and twitter.
+- **Content length:** Try to stay in 1000 characters
 
 ## 2. Live API Data
 Below is the latest data fetched from live APIs:
-Here's $Sonic price for today: { sonic_price_in_usd }
-Here's $Sonic price change in the last 24 hours: { sonic_price_change }%
-Here's $Sonic market cap: { sonic_market_cap_usd }
-Here's $Sonic volume in the last 24 hours: { sonic_volume_usd }
-Here's $Sonic position in coinMarketCap: { sonic_position_in_coinmarket_cap }
+Here's Sonic price for today: { sonic_price_in_usd }
+Here's Sonic price change in the last 24 hours: { sonic_price_change }%
+Here's Sonic market cap: { sonic_market_cap_usd }
+Here's Sonic volume in the last 24 hours: { sonic_volume_usd }
 
 ### Detailed Protocol Data:
 Here's the top 30 protocols according to defiLLama on Sonic chain:
@@ -371,7 +372,6 @@ Channel the spirit of medieval lore and sprinkle your insights with emojis.
             """
             
             logger.info(prompt)
-            return
 
             mystical_reading = "The mystical forces are clouded..."
 
