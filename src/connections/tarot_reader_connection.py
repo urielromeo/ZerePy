@@ -233,7 +233,7 @@ class TarotReaderConnection(BaseConnection):
             # Get basic price data for SONIC
             try:
                 raw_market_data = goat.perform_action("get_coin_price",
-                    coin_id= "sonic",
+                    coin_id= "sonic-3",
                     vs_currency= "usd",
                     include_market_cap= True,
                     include_24hr_vol= True,
@@ -252,7 +252,7 @@ class TarotReaderConnection(BaseConnection):
                 }
                     
                 logger.info(f"Retrieved market data: {formatted_market_data}")
-                    
+                return
             except Exception as e:
                 logger.error(f"Failed to fetch market data: {e}")
                 formatted_market_data = {
@@ -289,7 +289,7 @@ class TarotReaderConnection(BaseConnection):
 
             tweet_character_limit = "This is going to be on a tweet, keep it under 270 characters!!!! REALLY!!! and make it count!."
             tweet_character_limit_active = True
-            sonic_price_in_usd = "$0.5"
+            sonic_price_in_usd = formatted_market_data["price"]
             sonic_position_in_coinmarket_cap = "57"
             top_30_protocols_on_defillama = clean_defillama_data
             debridge_data = " { there's currently no data, sorry! }"
@@ -510,7 +510,7 @@ Below is the mystical reading, you'll fill in the blanks with the mystical readi
             # Get basic price data for SONIC
             try:
                 raw_market_data = goat.perform_action("get_coin_price",
-                    coin_id= "sonic",
+                    coin_id= "sonic-3",
                     vs_currency= "usd",
                     include_market_cap= True,
                     include_24hr_vol= True,
@@ -568,8 +568,9 @@ Below is the mystical reading, you'll fill in the blanks with the mystical readi
             # """
 
             tweet_character_limit = "This is going to be on a tweet, keep it tweet sized."
-            sonic_price_in_usd = "$0.5"
-            sonic_position_in_coinmarket_cap = "57"
+            sonic_price_in_usd = formatted_market_data["price"]
+            # sonic_price_in_usd = "$0.5"
+            sonic_position_in_coinmarket_cap = "unknown"
             top_30_protocols_on_defillama = " { there's currently no data, sorry! }"
             debridge_data = " { there's currently no data, sorry! }"
             allora_btc_price_prediction = " { there's currently no data, sorry! }"
