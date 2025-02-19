@@ -390,13 +390,20 @@ Channel the spirit of medieval lore and sprinkle your insights with emojis.
             try:
                 # Use synchronous generate_text instead
                 dalle_friendly_prompt_content = f"""
-You will improve this text in order to create a dall-e prompt
-* A tarot card illustration in the Rider-Waite style, featuring a [add something here ], symbolizing [add something here ]. The figure wears [ add something here ], and [ add something here ]. A [add something here ]. The background is [add something here ], evoking [add something here ]. The illustration is hand-drawn with bold black outlines, vibrant flat colors, and subtle shading to create depth,  staying true to the classic tarot aesthetic *
-You will add a character description based on the following
-Add negative parameters to including text in the image, and we want only one card
-Below is the mystical reading, you'll fill in the blanks with the mystical reading, but you will not include the text below in your output.
+You will enhance the following text to create a DALL-E prompt:
+* A tarot card illustration in a Rider-Waite style, featuring [describe the central figure], symbolizing [the underlying concept]. The figure is adorned in [describe attire and accessories] and [include additional distinctive features]. The card incorporates [describe key elements or objects], set against a background that is [describe the environment], evoking [a specific mood or atmosphere]. The illustration should be hand-drawn with bold black outlines, vibrant flat colors, and subtle shading for depth, staying true to the timeless tarot aesthetic. *
+Using the mystical reading provided below, add a detailed character description. Include negative parameters to ensure no text appears in the image and that only one card is depicted.
+Below is the mystical reading (for reference only; do not include it in your output):
 { mystical_reading }
                 """
+#                 dalle_friendly_prompt_content = f"""
+# You will improve this text in order to create a dall-e prompt
+# * A tarot card illustration in the Rider-Waite style, featuring a [add something here ], symbolizing [add something here ]. The figure wears [ add something here ], and [ add something here ]. A [add something here ]. The background is [add something here ], evoking [add something here ]. The illustration is hand-drawn with bold black outlines, vibrant flat colors, and subtle shading to create depth,  staying true to the classic tarot aesthetic *
+# You will add a character description based on the following
+# Add negative parameters to including text in the image, and we want only one card
+# Below is the mystical reading, you'll fill in the blanks with the mystical reading, but you will not include the text below in your output.
+# { mystical_reading }
+#                 """
                 dalle_friendly_prompt = openai_conn.perform_action("generate-text", { "prompt": dalle_friendly_prompt_content, "system_prompt": system_prompt })
             except Exception as e:
                 logger.error(f"Failed to generate dall-e friendly prompt reading: {e}")
