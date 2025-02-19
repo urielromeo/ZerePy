@@ -324,3 +324,26 @@ class TelegramConnection(BaseConnection):
         payload.update(kwargs)
 
         return self._make_request("post", "sendMessage", json=payload)
+
+    def send_message_with_image(self, chat_id: int, text: str, image_url: str, **kwargs) -> dict:
+        """
+        Send a message with an image via Telegram bot.
+
+        Args:
+            chat_id: Unique identifier for the target chat or username of the target channel.
+            text: Caption text for the image.
+            image_url: URL of the image to be sent.
+            **kwargs: Additional optional parameters to pass to the Telegram API.
+
+        Returns:
+            A dict containing the Telegram API response.
+        """
+        payload = {
+            "chat_id": chat_id,
+            "photo": image_url,
+            "caption": text
+        }
+        # Merge any additional optional parameters into the payload
+        payload.update(kwargs)
+
+        return self._make_request("post", "sendPhoto", json=payload)
