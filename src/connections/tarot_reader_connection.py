@@ -241,7 +241,7 @@ class TarotReaderConnection(BaseConnection):
                     include_last_updated_at= True
                 )
                 print("market data: ", str(raw_market_data))
-                market_data = raw_market_data.get('sonic', {})
+                market_data = raw_market_data.get('sonic-3', {})
                     
                 # Format market data with actual values
                 formatted_market_data = {
@@ -290,6 +290,9 @@ class TarotReaderConnection(BaseConnection):
             tweet_character_limit = "This is going to be on a tweet, keep it under 270 characters!!!! REALLY!!! and make it count!."
             tweet_character_limit_active = True
             sonic_price_in_usd = formatted_market_data["price"]
+            sonic_price_change = formatted_market_data["price_change"]
+            sonic_market_cap_usd = formatted_market_data["market_cap"]
+            sonic_volume_usd = formatted_market_data["volume"]
             sonic_position_in_coinmarket_cap = "57"
             top_30_protocols_on_defillama = clean_defillama_data
             debridge_data = " { there's currently no data, sorry! }"
@@ -349,6 +352,9 @@ class TarotReaderConnection(BaseConnection):
 ## 2. Live API Data
 Below is the latest data fetched from live APIs:
 Here's $Sonic price for today: { sonic_price_in_usd }
+Here's $Sonic price change in the last 24 hours: { sonic_price_change }%
+Here's $Sonic market cap: { sonic_market_cap_usd }
+Here's $Sonic volume in the last 24 hours: { sonic_volume_usd }
 Here's $Sonic position in coinMarketCap: { sonic_position_in_coinmarket_cap }
 
 ### Detailed Protocol Data:
