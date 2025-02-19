@@ -292,6 +292,22 @@ class TarotReaderConnection(BaseConnection):
             sonic_price_change = formatted_market_data["price_change"]
             sonic_market_cap_usd = formatted_market_data["market_cap"]
             sonic_volume_usd = formatted_market_data["volume"]
+            try:
+                sonic_price_in_usd = round(float(formatted_market_data["price"]), 2)
+            except:
+                pass
+            try:
+                sonic_price_change = round(float(formatted_market_data["price_change"]), 2)
+            except:
+                pass
+            try:
+                sonic_market_cap_usd = int(formatted_market_data["market_cap"])
+            except:
+                pass
+            try:
+                sonic_volume_usd = int(formatted_market_data["volume"])
+            except:
+                pass
             sonic_position_in_coinmarket_cap = "57"
             top_30_protocols_on_defillama = clean_defillama_data
             debridge_data = " { there's currently no data, sorry! }"
