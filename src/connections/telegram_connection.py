@@ -62,6 +62,30 @@ class TelegramConnection(BaseConnection):
                 ],
                 description="Send a message via Telegram bot"
             ),
+            "send-message-with-image": Action(
+                name="send-message-with-image",
+                parameters=[
+                    ActionParameter(
+                        "chat_id",
+                        required=True,
+                        type=str,
+                        description="Unique identifier for the target chat or username of the target channel (in the format @channelusername)"
+                    ),
+                    ActionParameter(
+                        "text",
+                        required=True,
+                        type=str,
+                        description="Caption text for the image"
+                    ),
+                    ActionParameter(
+                        "image_url",
+                        required=True,
+                        type=str,
+                        description="URL of the image to be sent"
+                    ),
+                ],
+                description="Send a message with an image via Telegram bot"
+            ),
             "set-webhook": Action(
                 name="set-webhook",
                 parameters=[
