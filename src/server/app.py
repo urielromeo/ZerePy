@@ -41,7 +41,9 @@ class ServerState:
                         if not log_once:
                             logger.info("Loop logic not implemented")
                             log_once = True
-
+                        
+                        self.cli.agent.loop()
+                        
                     except Exception as e:
                         logger.error(f"Error in agent action: {e}")
                         if self._stop_event.wait(timeout=30):
