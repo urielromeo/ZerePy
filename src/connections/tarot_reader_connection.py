@@ -835,6 +835,11 @@ Below is the mystical reading (for reference only; do not include it in your out
                 if image_path:
                     try:
                         twitter_conn = self.connection_manager.connections.get("twitter")
+                        if not twitter_conn:
+                            logger.error("Twitter connection not found")
+                            # list connections:
+                            logger.info(f"Available connections: {list(self.connection_manager.connections.keys())}")
+                            return None
                         # twitter_conn is assumed to be your TwitterConnection instance
                         tweet_response = twitter_conn.post_tweet_with_image(
                             message=twitter_final_content,
