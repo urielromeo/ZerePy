@@ -712,6 +712,7 @@ Below is the mystical reading (for reference only; do not include it in your out
 - **Try to:** Format big numbers (thousands or millions) with the appropiate commas.
 - **Try to:** Keep the reading engaging and mystical.
 - **Content length:** It's for a single tweet, 255 characters is the max limit.
+- **Content length:** Since it's a tweet, keep it to 3 lines max, be short! It doesn't matter you skip over stuff.
 
 ## 2. Live API Data
 Below is the latest data fetched from live APIs:
