@@ -37,11 +37,11 @@ class TwitterConnection(BaseConnection):
         if missing_fields:
             raise ValueError(f"Missing required configuration fields: {', '.join(missing_fields)}")
             
-        if not isinstance(config["timeline_read_count"], int) or config["timeline_read_count"] <= 0:
-            raise ValueError("timeline_read_count must be a positive integer")
+        # if not isinstance(config["timeline_read_count"], int) or config["timeline_read_count"] <= 0:
+        #     raise ValueError("timeline_read_count must be a positive integer")
 
-        if not isinstance(config["tweet_interval"], int) or config["tweet_interval"] <= 0:
-            raise ValueError("tweet_interval must be a positive integer")
+        # if not isinstance(config["tweet_interval"], int) or config["tweet_interval"] <= 0:
+        #     raise ValueError("tweet_interval must be a positive integer")
             
         return config
 
