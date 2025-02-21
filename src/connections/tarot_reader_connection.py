@@ -837,7 +837,7 @@ Below is the mystical reading (for reference only; do not include it in your out
                         twitter_conn = self.connection_manager.connections.get("twitter")
                         # twitter_conn is assumed to be your TwitterConnection instance
                         tweet_response = twitter_conn.post_tweet_with_image(
-                            message=twitter_final_content[:270],
+                            message=twitter_final_content,
                             image_path=image_path
                         )
                         logger.info(f"Tweet with image posted successfully: {tweet_response}")
