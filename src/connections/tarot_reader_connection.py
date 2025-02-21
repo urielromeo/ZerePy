@@ -750,6 +750,18 @@ Channel the spirit of medieval lore and sprinkle your insights with emojis.
                 mystical_reading = "The mystical forces are silent today..."
             logger.info(mystical_reading)
 
+            twitter_final_content = ""
+            try:
+                # Use synchronous generate_text instead
+                twitter_final_content = openai_conn.perform_action("generate-text", {
+                    "prompt": "This content is probably too long for a 255 character tweet, shorten it, but keep the style, avoid the double newlines.",
+                    "system_prompt": system_prompt
+                })
+            except Exception as e:
+                logger.error(f"Failed to generate mystical reading: {e}")
+                twitter_final_content = mystical_reading
+            logger.info(twitter_final_content)
+
             dalle_friendly_prompt = mystical_reading
             try:
                 # Use synchronous generate_text instead
@@ -821,7 +833,7 @@ Below is the mystical reading (for reference only; do not include it in your out
                         twitter_conn = self.connection_manager.connections.get("twitter")
                         # twitter_conn is assumed to be your TwitterConnection instance
                         tweet_response = twitter_conn.post_tweet_with_image(
-                            message=mystical_reading[:270],
+                            message=twitter_final_content[:270],
                             image_path=image_path
                         )
                         logger.info(f"Tweet with image posted successfully: {tweet_response}")
