@@ -1086,5 +1086,7 @@ Below is the mystical reading (for reference only; do not include it in your out
         method = getattr(self, method_name)
         if method_name == "perform_reading":
             return await self.perform_reading()
+        elif method_name == "perform_reading_twitter":
+            return await self.perform_reading_twitter()
         elif method_name == "get_market_sentiment":
             return await self.get_market_sentiment()
