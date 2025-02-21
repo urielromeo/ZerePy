@@ -12,10 +12,10 @@ logger = logging.getLogger("actions.tarot_reader_actions")
 
 
 @register_action("perform-reading-twitter")
-def perform_reading(agent, **kwargs):
+async def perform_reading(agent, **kwargs):
     """Perform a complete mystical twitter tarot reading using automatically gathered blockchain data"""
     tarot_reader = agent.connection_manager.connections.get("tarot-reader")
-    tarot_reader.perform_action("perform_reading_twitter", {})
+    await tarot_reader.perform_action("perform_reading_twitter", {})
     pass
 
 @register_action("perform-reading")
