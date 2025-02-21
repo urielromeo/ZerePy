@@ -29,6 +29,7 @@ class ConnectionManager:
     def __init__(self, agent_config):
         self.connections: Dict[str, BaseConnection] = {}
         for config in agent_config:
+            print("---> registering" + config["name"])
             self._register_connection(config)
 
     @staticmethod
