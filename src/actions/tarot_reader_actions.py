@@ -10,6 +10,14 @@ logger = logging.getLogger("actions.tarot_reader_actions")
 # or additional processing before/after calling the underlying connection methods.
 # Feel free to modify these handlers to add your own business logic!
 
+
+@register_action("perform-reading-twitter")
+def perform_reading(agent, **kwargs):
+    """Perform a complete mystical twitter tarot reading using automatically gathered blockchain data"""
+    tarot_reader = agent.connection_manager.connections.get("tarot-reader")
+    tarot_reader.perform_action("perform_reading_twitter")
+    pass
+
 @register_action("perform-reading")
 def perform_reading(agent, **kwargs):
     """Perform a complete mystical tarot reading using automatically gathered blockchain data"""
