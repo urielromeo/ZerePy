@@ -205,7 +205,7 @@ class ZerePyAgent:
                     action_name = "perform-reading-twitter"
                     # PERFORM ACTION
                     self.connection_manager.perform_action(
-                        connection_name="twitter",
+                        connection_name="tarot-reader",
                         action_name=action_name,
                         params={}
                     )
