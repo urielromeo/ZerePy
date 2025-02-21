@@ -207,8 +207,9 @@ class ZerePyAgent:
                     success = execute_action(self, action_name)
 
                     logger.info(f"\n⏳ Waiting {self.loop_delay} seconds before next loop...")
-                    print_h_bar()
-                    time.sleep(self.loop_delay if success else 60)
+                    # print_h_bar()
+                    time.sleep(10)
+                    # time.sleep(self.loop_delay if success else 60)
 
                 except Exception as e:
                     logger.error(f"\n❌ Error in agent loop iteration: {e}")
