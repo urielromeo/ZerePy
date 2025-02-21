@@ -755,9 +755,27 @@ Channel the spirit of medieval lore and sprinkle your insights with emojis.
                 # Use synchronous generate_text instead
                 twitter_final_content = openai_conn.perform_action("generate-text", {
                     "prompt": """
-This content is probably too long for a 200 character tweet, shorten it, but keep the style, avoid the double newlines.
+This content is too long.
+Reduce it to a twitter limit.
+I would instruct you to keep it at 270, but keep it to 200 to be sure.
 Output only the final result, do not talk.
+===content starts here===
 {mystical_reading}
+=== content ends here===
+- remember! Do not exceed the twitter size!
+- If you happen to mention ANYONE from this list, tag them instead
+- Sonic Lords:  @ENRINFT $RELIC
+- Silo Finance: @SiloFinance
+- Beets: @beets_fi $BEETS
+- Avalon Finance: @avalonfinance_ $AVL
+- Shadow Exchange: @ShadowOnSonic $SHADOW
+- SwapX exchange: @SwapXfi
+- Ichi protocol: @ichifoundation
+- Euler Labs: @eulerfinance
+- WAGMI protocol: @wagmicom
+- Beefy finance: @beefyfinance
+- Origin Protocol: @OriginProtocol $OS
+- Eggs Finance: @eggsonsonic $EGGS
                     """,
                     "system_prompt": system_prompt
                 })
