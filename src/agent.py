@@ -204,7 +204,12 @@ class ZerePyAgent:
                     # action_name = action["name"]
                     action_name = "perform-reading-twitter"
                     # PERFORM ACTION
-                    success = execute_action(self, action_name)
+                    self.connection_manager.perform_action(
+                        connection_name="twitter",
+                        action_name=action_name,
+                        params={}
+                    )
+                    # success = execute_action(self, action_name)
 
                     logger.info(f"\n⏳ Waiting {self.loop_delay} seconds before next loop...")
                     # print_h_bar()
