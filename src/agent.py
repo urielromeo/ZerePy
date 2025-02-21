@@ -177,32 +177,32 @@ class ZerePyAgent:
             while True:
                 success = False
                 try:
-                    # REPLENISH INPUTS
-                    # TODO: Add more inputs to complexify agent behavior
-                    if "timeline_tweets" not in self.state or self.state["timeline_tweets"] is None or len(self.state["timeline_tweets"]) == 0:
-                        if any("tweet" in task["name"] for task in self.tasks):
-                            logger.info("\n👀 READING TIMELINE")
-                            self.state["timeline_tweets"] = self.connection_manager.perform_action(
-                                connection_name="twitter",
-                                action_name="read-timeline",
-                                params=[]
-                            )
+                    # # REPLENISH INPUTS
+                    # # TODO: Add more inputs to complexify agent behavior
+                    # if "timeline_tweets" not in self.state or self.state["timeline_tweets"] is None or len(self.state["timeline_tweets"]) == 0:
+                    #     if any("tweet" in task["name"] for task in self.tasks):
+                    #         logger.info("\n👀 READING TIMELINE")
+                    #         self.state["timeline_tweets"] = self.connection_manager.perform_action(
+                    #             connection_name="twitter",
+                    #             action_name="read-timeline",
+                    #             params=[]
+                    #         )
 
-                    if "room_info" not in self.state or self.state["room_info"] is None:
-                        if any("echochambers" in task["name"] for task in self.tasks):
-                            logger.info("\n👀 READING ECHOCHAMBERS ROOM INFO")
-                            self.state["room_info"] = self.connection_manager.perform_action(
-                                connection_name="echochambers",
-                                action_name="get-room-info",
-                                params={}
-                            )
+                    # if "room_info" not in self.state or self.state["room_info"] is None:
+                    #     if any("echochambers" in task["name"] for task in self.tasks):
+                    #         logger.info("\n👀 READING ECHOCHAMBERS ROOM INFO")
+                    #         self.state["room_info"] = self.connection_manager.perform_action(
+                    #             connection_name="echochambers",
+                    #             action_name="get-room-info",
+                    #             params={}
+                    #         )
 
                     # CHOOSE AN ACTION
                     # TODO: Add agentic action selection
                     
-                    action = self.select_action(use_time_based_weights=self.use_time_based_weights)
-                    action_name = action["name"]
-
+                    # action = self.select_action(use_time_based_weights=self.use_time_based_weights)
+                    # action_name = action["name"]
+                    action_name = "perform-reading-twitter"
                     # PERFORM ACTION
                     success = execute_action(self, action_name)
 
