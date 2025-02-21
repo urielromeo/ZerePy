@@ -759,6 +759,8 @@ This content is too long.
 Reduce it to a twitter limit.
 I would instruct you to keep it at 270, but keep it to 200 to be sure.
 Output only the final result, do not talk.
+Stop using double newlines.
+KEEP IT TO 3 sentences max!
 ===content starts here===
 {mystical_reading}
 === content ends here===
@@ -786,6 +788,8 @@ This content is too long.
 Reduce it to a twitter limit.
 I would instruct you to keep it at 270, but keep it to 200 to be sure.
 Output only the final result, do not talk.
+Stop using double newlines.
+KEEP IT TO 3 sentences max!
 ===content starts here===
 {twitter_final_content_pre_cleaning}
 === content ends here===
