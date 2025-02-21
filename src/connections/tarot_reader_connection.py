@@ -754,7 +754,11 @@ Channel the spirit of medieval lore and sprinkle your insights with emojis.
             try:
                 # Use synchronous generate_text instead
                 twitter_final_content = openai_conn.perform_action("generate-text", {
-                    "prompt": "This content is probably too long for a 255 character tweet, shorten it, but keep the style, avoid the double newlines.",
+                    "prompt": """
+This content is probably too long for a 255 character tweet, shorten it, but keep the style, avoid the double newlines.
+Output only the final result, do not talk.
+{mystical_reading}
+                    """,
                     "system_prompt": system_prompt
                 })
             except Exception as e:
