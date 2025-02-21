@@ -30,6 +30,11 @@ class TarotReaderConnection(BaseConnection):
                 parameters=[],
                 description="Perform a complete tarot reading"
             ),
+            "perform-reading-twitter": Action(
+                name="perform-reading-twitter",
+                parameters=[],
+                description="Perform a twitter tarot reading"
+            ),
             "get-market-sentiment": Action(
                 name="get-market-sentiment",
                 parameters=[],
@@ -496,7 +501,346 @@ Below is the mystical reading (for reference only; do not include it in your out
         except Exception as e:
             logger.error(f"Failed to perform reading: {str(e)}")
             return "The cards are unclear... Try again when the stars align."
-          
+
+    async def perform_reading_twitter(self) -> Dict[str, Any]:
+        """Process market data and network stats into a twitter format"""
+        stop_before_openai = False
+        stop_before_tweet = False
+        try:
+            logger.info("Starting tarot reading process...")
+    
+            if not self.connection_manager:
+                logger.error("Connection manager not initialized")
+                return None
+
+            logger.info(f"Connection manager status: {self.connection_manager is not None}")
+            logger.info(f"Available connections: {list(self.connection_manager.connections.keys())}")
+
+            logger.info("Looking for Goat connection with CoinGecko plugin...")
+            goat = self.connection_manager.connections.get("goat")
+            if not goat:
+                logger.error("Goat connection not found")
+                return None
+
+
+            logger.info("Reading balances")
+            usdceBalanceResponse = goat.perform_action(action_name="get_token_balance",
+                wallet= "0x2c4a44a1a45e059b685fe49ee63023d9c7f770cf",
+                tokenAddress= "0x29219dd400f2Bf60E5a23d13Be72B486D4038894"
+            )
+            shadowBalanceResponse = goat.perform_action(action_name="get_token_balance",
+                wallet= "0x2c4a44a1a45e059b685fe49ee63023d9c7f770cf",
+                tokenAddress= "0x3333b97138D4b086720b5aE8A7844b1345a33333"
+            )
+            beetsBalanceResponse = goat.perform_action(action_name="get_token_balance",
+                wallet= "0x2c4a44a1a45e059b685fe49ee63023d9c7f770cf",
+                tokenAddress= "0x2D0E0814E62D80056181F5cd932274405966e4f0"
+            )
+            logger.info("Done reading balances")
+
+            def get_weight_description(weight: float) -> str:
+                if weight < 5:
+                    return "no influence"
+                elif weight < 25:
+                    return "little influence"
+                elif weight < 50:
+                    return "some influence"
+                elif weight < 90:
+                    return "lots of influence"
+                else:
+                    return "total influence"
+
+            decimals = {
+                "usdce": 6,
+                "shadow": 18,
+                "beets": 18
+            }
+
+            usdce_balance = usdceBalanceResponse
+            shadow_balance = shadowBalanceResponse
+            beets_balance = beetsBalanceResponse
+
+            usdce_eth_amount = usdce_balance / (10 ** decimals["usdce"])
+            shadow_eth_amount = shadow_balance / (10 ** decimals["shadow"])
+            beets_eth_amount = beets_balance / (10 ** decimals["beets"])
+
+            total_amount = usdce_eth_amount + shadow_eth_amount + beets_eth_amount
+
+            usdce_weight = (usdce_eth_amount / total_amount) * 100
+            shadow_weight = (shadow_eth_amount / total_amount) * 100
+            beets_weight = (beets_eth_amount / total_amount) * 100
+
+            usdce_weight_description = get_weight_description(usdce_weight)
+            shadow_weight_description = get_weight_description(shadow_weight)
+            beets_weight_description = get_weight_description(beets_weight)
+
+            print("USDCe:", usdce_weight_description)
+            print("SHADOW:", shadow_weight_description)
+            print("BEETS:", beets_weight_description)
+
+            # try to get defillama data
+            raw_defillama_data = goat.perform_action("get_chain_volume", chain ="sonic")
+            clean_defillama_data = self.defillama_result_to_prompt(raw_defillama_data)
+            logger.info(clean_defillama_data)
+
+            # Get basic price data for SONIC
+            try:
+                raw_market_data = goat.perform_action("get_coin_price",
+                    coin_id= "sonic-3",
+                    vs_currency= "usd",
+                    include_market_cap= True,
+                    include_24hr_vol= True,
+                    include_24hr_change= True,
+                    include_last_updated_at= True
+                )
+                print("market data: ", str(raw_market_data))
+                market_data = raw_market_data.get('sonic-3', {})
+                    
+                # Format market data with actual values
+                formatted_market_data = {
+                    "price": market_data.get("usd", 0.0),
+                    "price_change": market_data.get("usd_24h_change", 0),
+                    "market_cap": market_data.get("usd_market_cap", 0),
+                    "volume": market_data.get("usd_24h_vol", 0)
+                }
+                    
+                logger.info(f"Retrieved market data: {formatted_market_data}")
+            except Exception as e:
+                logger.error(f"Failed to fetch market data: {e}")
+                formatted_market_data = {
+                    "price": 0.0,
+                    "price_change": 0.0,
+                    "market_cap": 0,
+                    "volume": 0
+                }
+            
+            if stop_before_openai:
+                logger.info("Stopping before openai...")
+                return
+
+            # Get mystical interpretation
+            logger.info("Getting OpenAI connection for mystical interpretation...")
+            openai_conn = self.connection_manager.connections.get("openai")
+            if not openai_conn:
+                logger.error("OpenAI connection not found")
+                return "The mystical forces are weak today... Try again when the connections align."
+
+            system_prompt = (
+                "You are a mystical Tarot Reader who interprets blockchain omens.\n"
+                "Create a cryptic, mystical reading based on the market data provided."
+            )
+
+            # prompt = f"""
+            # The cosmic alignment reveals:
+            # - Market Sentiment: {base_reading['sentiment']}
+            # - Network Energy: {base_reading['network_indicators']['transactions']} transactions
+            # - Total Value Locked: ${base_reading['network_indicators']['tvl']:,.2f}
+            
+            # Channel the mystical forces to interpret these blockchain omens.
+            # """
+
+            sonic_price_in_usd = formatted_market_data["price"]
+            sonic_price_change = formatted_market_data["price_change"]
+            sonic_market_cap_usd = formatted_market_data["market_cap"]
+            sonic_volume_usd = formatted_market_data["volume"]
+            try:
+                sonic_price_in_usd = round(float(formatted_market_data["price"]), 2)
+            except:
+                pass
+            try:
+                sonic_price_change = round(float(formatted_market_data["price_change"]), 2)
+            except:
+                pass
+            try:
+                sonic_market_cap_usd = int(formatted_market_data["market_cap"])
+            except:
+                pass
+            try:
+                sonic_volume_usd = int(formatted_market_data["volume"])
+            except:
+                pass
+            top_30_protocols_on_defillama = clean_defillama_data
+
+            usdc_e_prompt = f"""
+                GENERAL SONIC FOUNDATION REMARKS AND POSITIVE REVIEW INFO that you can use to have some context (without losing character):
+                Sonic is the highest-performing EVM L1, combining speed, incentives, and world-class infrastructure,
+                powering the next generation of DeFi applications. The chain provides 10,000 TPS and sub-second finality.  The chain is the brainchild of DeFi genius Andre Cronje, and it is the evolution of the previously successful Fantom foundation. 
+                It hosts the heart and soul of DeFi, and holds the potential to become the absolute leader in DeFi finance.
+            """
+
+            beets_prompt = f"""
+                Please add to your divination some hints and positive remarks (without losing character) about BEETS. 
+                just so you know, here’s a description of BEETS exchange:
+                beethoven exchange is a unique exchange, integrating the balancer protocol that allows for pools with more than 2 assets, 
+                and the NFT-based tokenization of voting power for bribes and emission distribution through the fun and unique maBEETS ownership. 
+                The exchange has years of activity and seniority on multiple networks, including the Fantom network that preceded Sonic.
+            """
+
+            shadow_prompt = f"""
+                Please add to your divination some hints and positive remarks (without losing character) about SHADOW. 
+                just so you know, here’s a description of shadow exchange:
+                A Sonic-native concentrated liquidity exchange.
+                The ultimate trading hub on Sonic.
+                Shadow exchange leverages all of the latest technologies used on advanced dexes, such as the ve(3,3) model invented by Andre Cronje himself,
+                an unique player vs player rebase mechanism, concentrated liquidity and an order book, 
+                and a 10 years release mechanism of the SHADOW token that ensures continued activity through the years.
+            """
+
+            winner_bribe = ""
+
+            # Determine winner based on highest weight
+            max_weight = max(usdce_weight, shadow_weight, beets_weight)
+            if max_weight == usdce_weight:
+                winner_bribe = usdc_e_prompt
+            elif max_weight == shadow_weight:
+                winner_bribe = shadow_prompt
+            elif max_weight == beets_weight:
+                winner_bribe = beets_prompt
+            else:
+                winner_bribe = usdc_e_prompt  # Fallback if no clear winner
+
+            prompt = f"""
+# Sonic Chain Cartomancer Tarot Reading Prompt
+
+## 1. Role & Tone
+- **Role:** You are a Sonic chain cartomancer.
+- **Style:** Use folk and medieval language.
+- **Tone:** Opinionated, with playful and irreverent remarks.
+- **Emojis:** Include relevant emojis to enhance the reading.
+- **Avoid:** Being overly specific with numbers; keep the predictions general.
+- **Try to:** Format in a way readable for telegram and twitter.
+- **Try to:** Format big numbers (thousands or millions) with the appropiate commas.
+- **Try to:** Keep the reading engaging and mystical.
+- **Content length:** It's for a single tweet, 255 characters is the max limit.
+
+## 2. Live API Data
+Below is the latest data fetched from live APIs:
+Here's Sonic price for today: { sonic_price_in_usd }
+Here's Sonic price change in the last 24 hours: { sonic_price_change }%
+Here's Sonic market cap: { sonic_market_cap_usd }
+Here's Sonic volume in the last 24 hours: { sonic_volume_usd }
+
+### Detailed Protocol Data:
+Here's the top 30 protocols according to defiLLama on Sonic chain:
+{ top_30_protocols_on_defillama }
+
+## 3. Token Possessions & Context
+Here's the list of tokens in our possession, take them into consideration, 
+since these are bribes we're given for formulating our oracle by our benefactors:
+{ winner_bribe }
+
+## 4. Task
+Using the above data and context, perform a Tarot reading for the Sonic network. Let your reading be mystical, opinionated, and engaging. 
+Channel the spirit of medieval lore and sprinkle your insights with emojis.
+            """
+            
+            logger.info(prompt)
+
+            mystical_reading = "The mystical forces are clouded..."
+
+            try:
+                # Use synchronous generate_text instead
+                mystical_reading = openai_conn.perform_action("generate-text", {
+                    "prompt": prompt,
+                    "system_prompt": system_prompt
+                })
+            except Exception as e:
+                logger.error(f"Failed to generate mystical reading: {e}")
+                mystical_reading = "The mystical forces are silent today..."
+            logger.info(mystical_reading)
+
+            dalle_friendly_prompt = mystical_reading
+            try:
+                # Use synchronous generate_text instead
+                dalle_friendly_prompt_content = f"""
+You will enhance the following text to create a DALL-E prompt:
+* A tarot card illustration in a Rider-Waite style, featuring [describe the central figure], symbolizing [the underlying concept]. The figure is adorned in [describe attire and accessories] and [include additional distinctive features]. The card incorporates [describe key elements or objects], set against a background that is [describe the environment], evoking [a specific mood or atmosphere]. The illustration should be hand-drawn with bold black outlines, vibrant flat colors, and subtle shading for depth, staying true to the timeless tarot aesthetic. *
+Using the mystical reading provided below, add a detailed character description. Include negative parameters to ensure no text appears in the image and that only one card is depicted.
+Below is the mystical reading (for reference only; do not include it in your output):
+{ mystical_reading }
+                """
+#                 dalle_friendly_prompt_content = f"""
+# You will improve this text in order to create a dall-e prompt
+# * A tarot card illustration in the Rider-Waite style, featuring a [add something here ], symbolizing [add something here ]. The figure wears [ add something here ], and [ add something here ]. A [add something here ]. The background is [add something here ], evoking [add something here ]. The illustration is hand-drawn with bold black outlines, vibrant flat colors, and subtle shading to create depth,  staying true to the classic tarot aesthetic *
+# You will add a character description based on the following
+# Add negative parameters to including text in the image, and we want only one card
+# Below is the mystical reading, you'll fill in the blanks with the mystical reading, but you will not include the text below in your output.
+# { mystical_reading }
+#                 """
+                dalle_friendly_prompt = openai_conn.perform_action("generate-text", { "prompt": dalle_friendly_prompt_content, "system_prompt": system_prompt })
+            except Exception as e:
+                logger.error(f"Failed to generate dall-e friendly prompt reading: {e}")
+
+            logger.info("dall-e will read this: " + dalle_friendly_prompt)
+
+            image_url = None
+            try:
+                # Use synchronous generate_text instead
+                image_url = openai_conn.perform_action("generate-image", {
+                    "prompt": dalle_friendly_prompt[:999]
+                })
+            except Exception as e:
+                logger.error(f"Failed to generate mystical image: {e}")
+                mystical_reading = "The mystical forces are silent today..."
+            logger.info(image_url)
+            
+            if False and stop_before_tweet:
+                logger.info("Stopping before tweet...")
+                return {
+                    "image_url": image_url,
+                    "reading_long": mystical_reading,
+                    "reading_short": dalle_friendly_prompt,
+                    "prompt": prompt
+                }
+            
+            if image_url:
+                # Define the base and images folder paths
+                base_path = os.getcwd()  # This is the project's base path
+                images_folder = os.path.join(base_path, "images")
+                os.makedirs(images_folder, exist_ok=True)
+                
+                # Define the image file name and complete path
+                image_filename = "generated_image.jpg"
+                image_path = os.path.join(images_folder, image_filename)
+
+                # Download the image using requests
+                try:
+                    response = requests.get(image_url)
+                    response.raise_for_status()  # Check for HTTP errors
+                    with open(image_path, "wb") as f:
+                        f.write(response.content)
+                    logger.info(f"Image successfully downloaded to {image_path}")
+                except Exception as e:
+                    logger.error(f"Error downloading image: {e}")
+                    image_path = None
+
+                # If the image was downloaded, tweet it using the post_tweet_with_image action
+                if image_path:
+                    try:
+                        twitter_conn = self.connection_manager.connections.get("twitter")
+                        # twitter_conn is assumed to be your TwitterConnection instance
+                        tweet_response = twitter_conn.post_tweet_with_image(
+                            message=mystical_reading[:270],
+                            image_path=image_path
+                        )
+                        logger.info(f"Tweet with image posted successfully: {tweet_response}")
+                    except Exception as e:
+                        logger.error(f"Failed to post tweet with image: {e}")
+            else: 
+                try:
+                    logger.info("Attempting to post reading without image to Twitter...")
+                    twitter_conn = self.connection_manager.connections.get("twitter")
+                    if twitter_conn and twitter_conn.is_configured():
+                        tweet_text = mystical_reading
+                        # tweet_text = f"🔮 Sonic Network Reading:\n{mystical_reading[:200]}..."  # Truncate if needed
+                        twitter_conn.post_tweet(tweet_text)
+                        logger.info("Successfully posted to Twitter")
+                except Exception as e:
+                    logger.warning(f"Twitter posting failed (this is okay): {e}")
+        except Exception as e:
+            logger.error(f"Failed to perform reading: {str(e)}")
+            return "The cards are unclear... Try again when the stars align."
+
 
     async def old_perform_reading(self) -> Dict[str, Any]:
         """Process market data and network stats into a reading format"""
