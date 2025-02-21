@@ -19,7 +19,8 @@ async def perform_reading_twitter(agent, **kwargs):
     if not tarot_reader:
         logger.error("Tarot Reader connection not found")
         return None
-    result = await tarot_reader.perform_action("perform_reading_twitter", {})
+    import asyncio
+    result = asyncio.run(tarot_reader.perform_action("perform_reading_twitter", {}))
     logger.info(f"Tarot reading result: {result}")
     pass
 
