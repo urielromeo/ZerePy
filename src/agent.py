@@ -177,43 +177,35 @@ class ZerePyAgent:
             while True:
                 success = False
                 try:
-                    # # REPLENISH INPUTS
-                    # # TODO: Add more inputs to complexify agent behavior
-                    # if "timeline_tweets" not in self.state or self.state["timeline_tweets"] is None or len(self.state["timeline_tweets"]) == 0:
-                    #     if any("tweet" in task["name"] for task in self.tasks):
-                    #         logger.info("\n👀 READING TIMELINE")
-                    #         self.state["timeline_tweets"] = self.connection_manager.perform_action(
-                    #             connection_name="twitter",
-                    #             action_name="read-timeline",
-                    #             params=[]
-                    #         )
-
-                    # if "room_info" not in self.state or self.state["room_info"] is None:
-                    #     if any("echochambers" in task["name"] for task in self.tasks):
-                    #         logger.info("\n👀 READING ECHOCHAMBERS ROOM INFO")
-                    #         self.state["room_info"] = self.connection_manager.perform_action(
-                    #             connection_name="echochambers",
-                    #             action_name="get-room-info",
-                    #             params={}
-                    #         )
-
-                    # CHOOSE AN ACTION
-                    # TODO: Add agentic action selection
-                    
-                    # action = self.select_action(use_time_based_weights=self.use_time_based_weights)
-                    # action_name = action["name"]
-                    action_name = "perform-reading-twitter"
-                    # PERFORM ACTION
-                    self.connection_manager.perform_action(
-                        connection_name="tarot-reader",
-                        action_name=action_name,
-                        params={}
-                    )
-                    # success = execute_action(self, action_name)
+                    current_hour = datetime.now().hour
+                    if 8 <= current_hour < 24:
+                        random_check = random.randint(1, 4)
+                        if random_check == 1:
+                            logger.info("Performing a reading now.")
+                            action_name = "perform-reading-twitter"
+                            self.connection_manager.perform_action(
+                                connection_name="tarot-reader",
+                                action_name=action_name,
+                                params={}
+                            )
+                            success = True
+                        else:
+                            logger.info("Skipping reading this time.")
+                    else:
+                        random_check = random.randint(1, 12)
+                        if random_check == 1:
+                            logger.info("Performing a reading now.")
+                            action_name = "perform-reading-twitter"
+                            self.connection_manager.perform_action(
+                                connection_name="tarot-reader",
+                                action_name=action_name,
+                                params={}
+                            )
+                            success = True
+                        else:
+                            logger.info("Skipping reading this time.")
 
                     logger.info(f"\n⏳ Waiting {self.loop_delay} seconds before next loop...")
-                    # print_h_bar()
-                    # time.sleep(10)
                     time.sleep(self.loop_delay if success else 60)
 
                 except Exception as e:
