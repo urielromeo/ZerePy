@@ -793,6 +793,20 @@ Your output must meet these requirements:
 ===CONTENT===
 {twitter_final_content_pre_cleaning}
 === content ends here===
+- remember! Do not exceed the twitter size!
+- If you happen to mention ANYONE from this list, tag them instead
+- Sonic Lords:  @ENRINFT $RELIC
+- Silo Finance: @SiloFinance
+- Beets: @beets_fi $BEETS
+- Avalon Finance: @avalonfinance_ $AVL
+- Shadow Exchange: @ShadowOnSonic $SHADOW
+- SwapX exchange: @SwapXfi
+- Ichi protocol: @ichifoundation
+- Euler Labs: @eulerfinance
+- WAGMI protocol: @wagmicom
+- Beefy finance: @beefyfinance
+- Origin Protocol: @OriginProtocol $OS
+- Eggs Finance: @eggsonsonic $EGGS
                     """,
                     "system_prompt": system_prompt
                 })
