@@ -912,6 +912,8 @@ Below is the mystical reading (for reference only; do not include it in your out
                         )
                         logger.info(f"Tweet with image posted successfully: {tweet_response}")
                     except Exception as e:
+                        # throw an error since we have to try again
+                        raise e
                         logger.error(f"Failed to post tweet with image: {e}")
             else: 
                 try:
@@ -926,6 +928,9 @@ Below is the mystical reading (for reference only; do not include it in your out
                     logger.warning(f"Twitter posting failed (this is okay): {e}")
         except Exception as e:
             logger.error(f"Failed to perform reading: {str(e)}")
+            # if the error was due to a twitter error, we should try again
+            if "exceeds 280 character limit" in str(e):
+                raise e
             return "The cards are unclear... Try again when the stars align."
 
 
