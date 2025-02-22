@@ -785,29 +785,28 @@ KEEP IT TO 3 sentences max!
                 # Use synchronous generate_text instead
                 twitter_final_content_pre_cleaning_2 = openai_conn.perform_action("generate-text", {
                     "prompt": """
-This content is too long.
-Reduce it to a twitter limit.
-I would instruct you to keep it at 270, but keep it to 200 to be sure.
-Output only the final result, do not talk.
-Stop using double newlines.
-===content starts here===
+The content below is too long and must be reduced to fit within Twitter's limits (no more than 200 characters). 
+Your output must meet these requirements:
+• Output only the final text with no extra commentary.
+• Do not use double newlines; a single newline is acceptable.
+• Use a maximum of 3 sentences.
+===CONTENT===
 {twitter_final_content_pre_cleaning}
 === content ends here===
                     """,
                     "system_prompt": system_prompt
                 })
-                logger.info("twitter_final_content_pre_cleaning:" +twitter_final_content_pre_cleaning)
+                logger.info("twitter_final_content_pre_cleaning_2:" +twitter_final_content_pre_cleaning_2)
                 twitter_final_content = openai_conn.perform_action("generate-text", {
                     "prompt": """
-This content is too long.
-Reduce it to a twitter limit.
-I would instruct you to keep it at 270, but keep it to 200 to be sure.
-Output only the final result, do not talk.
-Stop using double newlines.
-KEEP IT TO 3 sentences max!
-===content starts here===
+The content below is too long and must be reduced to fit within Twitter's limits (no more than 200 characters). 
+Your output must meet these requirements:
+• Output only the final text with no extra commentary.
+• Do not use double newlines; a single newline is acceptable.
+• Use a maximum of 3 sentences.
+===CONTENT===
 {twitter_final_content_pre_cleaning_2}
-=== content ends here===
+===CONTENT ENDS HERE===
 - remember! Do not exceed the twitter size!
 - If you happen to mention ANYONE from this list, tag them instead
 - Sonic Lords:  @ENRINFT $RELIC
