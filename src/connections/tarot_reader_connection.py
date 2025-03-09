@@ -223,6 +223,11 @@ class TarotReaderConnection(BaseConnection):
                 wallet= "0x2c4a44a1a45e059b685fe49ee63023d9c7f770cf",
                 tokenAddress= "0x2D0E0814E62D80056181F5cd932274405966e4f0"
             )
+            relicBalanceResponse = goat.perform_action(action_name="get_token_balance",
+                wallet= "0x2c4a44a1a45e059b685fe49ee63023d9c7f770cf",
+                tokenAddress= "0xf2968631d02330dc5e420373f083b7b4f8b24e17"
+            )
+
             logger.info("Done reading balances")
 
             def get_weight_description(weight: float) -> str:
@@ -240,30 +245,36 @@ class TarotReaderConnection(BaseConnection):
             decimals = {
                 "usdce": 6,
                 "shadow": 18,
-                "beets": 18
+                "beets": 18,
+                "relic": 18
             }
 
             usdce_balance = usdceBalanceResponse
             shadow_balance = shadowBalanceResponse
             beets_balance = beetsBalanceResponse
+            relic_balance = relicBalanceResponse
 
             usdce_eth_amount = usdce_balance / (10 ** decimals["usdce"])
             shadow_eth_amount = shadow_balance / (10 ** decimals["shadow"])
             beets_eth_amount = beets_balance / (10 ** decimals["beets"])
+            relic_eth_amount = relic_balance / (10 ** decimals["relic"])
 
-            total_amount = usdce_eth_amount + shadow_eth_amount + beets_eth_amount
+            total_amount = usdce_eth_amount + shadow_eth_amount + beets_eth_amount + relic_eth_amount
 
             usdce_weight = (usdce_eth_amount / total_amount) * 100
             shadow_weight = (shadow_eth_amount / total_amount) * 100
             beets_weight = (beets_eth_amount / total_amount) * 100
+            relic_weight = (relic_eth_amount / total_amount) * 100
 
             usdce_weight_description = get_weight_description(usdce_weight)
             shadow_weight_description = get_weight_description(shadow_weight)
             beets_weight_description = get_weight_description(beets_weight)
+            relic_weight_description = get_weight_description(relic_weight)
 
             print("USDCe:", usdce_weight_description)
             print("SHADOW:", shadow_weight_description)
             print("BEETS:", beets_weight_description)
+            print("RELIC:", relic_weight_description)
 
             # try to get defillama data
             raw_defillama_data = "" # goat.perform_action("get_chain_volume", chain ="sonic")
@@ -380,6 +391,11 @@ class TarotReaderConnection(BaseConnection):
                 and a 10 years release mechanism of the SHADOW token that ensures continued activity through the years.
             """
 
+            relics_prompt = f"""
+                Please add to your divination some hints and positive remarks (without losing character) about RELIC. 
+                RELIC is the heartbeat of the Sonic Lords ecosystem—a gamified NFT universe thriving on the high-performance Sonic blockchain. Engineered to harness Sonic’s groundbreaking capabilities of 10,000 TPS and sub-second finality, RELIC fuels an immersive experience where every transaction is swift and seamless.
+                As the ritual token for Sonic Lords, RELIC offers holders exclusive advantages: by burning tokens, users unlock discounts on NFT minting, blending gameplay with smart tokenomics. This unique utility not only incentivizes participation but also strategically reduces the circulating supply, echoing the deflationary principles seen across visionary ecosystems."""
+
             winner_bribe = ""
 
             # Determine winner based on highest weight
@@ -390,6 +406,8 @@ class TarotReaderConnection(BaseConnection):
                 winner_bribe = shadow_prompt
             elif max_weight == beets_weight:
                 winner_bribe = beets_prompt
+            elif max_weight == relic_weight:
+                winner_bribe = relics_prompt
             else:
                 winner_bribe = usdc_e_prompt  # Fallback if no clear winner
 
@@ -586,6 +604,11 @@ Below is the mystical reading (for reference only; do not include it in your out
                 wallet= "0x2c4a44a1a45e059b685fe49ee63023d9c7f770cf",
                 tokenAddress= "0x2D0E0814E62D80056181F5cd932274405966e4f0"
             )
+
+            relicBalanceResponse = goat.perform_action(action_name="get_token_balance",
+                wallet= "0x2c4a44a1a45e059b685fe49ee63023d9c7f770cf",
+                tokenAddress= "0xf2968631d02330dc5e420373f083b7b4f8b24e17"
+            )
             logger.info("Done reading balances")
 
             def get_weight_description(weight: float) -> str:
@@ -603,30 +626,36 @@ Below is the mystical reading (for reference only; do not include it in your out
             decimals = {
                 "usdce": 6,
                 "shadow": 18,
-                "beets": 18
+                "beets": 18,
+                "relic": 18
             }
 
             usdce_balance = usdceBalanceResponse
             shadow_balance = shadowBalanceResponse
             beets_balance = beetsBalanceResponse
+            relic_balance = relicBalanceResponse
 
             usdce_eth_amount = usdce_balance / (10 ** decimals["usdce"])
             shadow_eth_amount = shadow_balance / (10 ** decimals["shadow"])
             beets_eth_amount = beets_balance / (10 ** decimals["beets"])
+            relic_eth_amount = relic_balance / (10 ** decimals["relic"])
 
-            total_amount = usdce_eth_amount + shadow_eth_amount + beets_eth_amount
+            total_amount = usdce_eth_amount + shadow_eth_amount + beets_eth_amount + relic_eth_amount
 
             usdce_weight = (usdce_eth_amount / total_amount) * 100
             shadow_weight = (shadow_eth_amount / total_amount) * 100
             beets_weight = (beets_eth_amount / total_amount) * 100
+            relic_weight = (relic_eth_amount / total_amount) * 100
 
             usdce_weight_description = get_weight_description(usdce_weight)
             shadow_weight_description = get_weight_description(shadow_weight)
             beets_weight_description = get_weight_description(beets_weight)
+            relic_weight_description = get_weight_description(relic_weight)
 
             print("USDCe:", usdce_weight_description)
             print("SHADOW:", shadow_weight_description)
             print("BEETS:", beets_weight_description)
+            print("RELIC:", relic_weight_description)
 
             # try to get defillama data
             raw_defillama_data = "" # goat.perform_action("get_chain_volume", chain ="sonic")
@@ -736,16 +765,23 @@ Below is the mystical reading (for reference only; do not include it in your out
                 and a 10 years release mechanism of the SHADOW token that ensures continued activity through the years.
             """
 
+            relics_prompt = """
+                Please add to your divination some hints and positive remarks (without losing character) about RELIC. 
+                RELIC is the heartbeat of the Sonic Lords ecosystem—a gamified NFT universe thriving on the high-performance Sonic blockchain. Engineered to harness Sonic’s groundbreaking capabilities of 10,000 TPS and sub-second finality, RELIC fuels an immersive experience where every transaction is swift and seamless.
+                As the ritual token for Sonic Lords, RELIC offers holders exclusive advantages: by burning tokens, users unlock discounts on NFT minting, blending gameplay with smart tokenomics. This unique utility not only incentivizes participation but also strategically reduces the circulating supply, echoing the deflationary principles seen across visionary ecosystems."""
+
             winner_bribe = ""
 
             # Determine winner based on highest weight
-            max_weight = max(usdce_weight, shadow_weight, beets_weight)
+            max_weight = max(usdce_weight, shadow_weight, beets_weight, relic_weight)
             if max_weight == usdce_weight:
                 winner_bribe = usdc_e_prompt
             elif max_weight == shadow_weight:
                 winner_bribe = shadow_prompt
             elif max_weight == beets_weight:
                 winner_bribe = beets_prompt
+            elif max_weight == relic_weight:
+                winner_bribe = relics_prompt
             else:
                 winner_bribe = usdc_e_prompt  # Fallback if no clear winner
 
