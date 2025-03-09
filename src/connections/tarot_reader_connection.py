@@ -260,7 +260,34 @@ class TarotReaderConnection(BaseConnection):
             relic_eth_amount = relic_balance / (10 ** decimals["relic"])
 
             total_amount = usdce_eth_amount + shadow_eth_amount + beets_eth_amount + relic_eth_amount
+            logger.info(f"""
+            Raw balances:
+            USDC-e ({decimals['usdce']} decimals): {usdce_balance}
+            SHADOW ({decimals['shadow']} decimals): {shadow_balance}
+            BEETS ({decimals['beets']} decimals): {beets_balance}
+            RELIC ({decimals['relic']} decimals): {relic_balance}
 
+            Normalized amounts:
+            USDC-e: {usdce_eth_amount}
+            SHADOW: {shadow_eth_amount}
+            BEETS: {beets_eth_amount}
+            RELIC: {relic_eth_amount}
+
+            Total amount: {total_amount}
+            """)
+
+            usdce_weight = (usdce_eth_amount / total_amount) * 100
+            shadow_weight = (shadow_eth_amount / total_amount) * 100
+            beets_weight = (beets_eth_amount / total_amount) * 100
+            relic_weight = (relic_eth_amount / total_amount) * 100
+
+            logger.info(f"""
+            Calculated weights:
+            USDC-e: {usdce_weight:.2f}%
+            SHADOW: {shadow_weight:.2f}%
+            BEETS: {beets_weight:.2f}%
+            RELIC: {relic_weight:.2f}%
+            """)
             usdce_weight = (usdce_eth_amount / total_amount) * 100
             shadow_weight = (shadow_eth_amount / total_amount) * 100
             beets_weight = (beets_eth_amount / total_amount) * 100
@@ -399,7 +426,7 @@ class TarotReaderConnection(BaseConnection):
             winner_bribe = ""
 
             # Determine winner based on highest weight
-            max_weight = max(usdce_weight, shadow_weight, beets_weight)
+            max_weight = max(usdce_weight, shadow_weight, beets_weight, relic_weight)
             if max_weight == usdce_weight:
                 winner_bribe = usdc_e_prompt
             elif max_weight == shadow_weight:
@@ -641,12 +668,34 @@ Below is the mystical reading (for reference only; do not include it in your out
             relic_eth_amount = relic_balance / (10 ** decimals["relic"])
 
             total_amount = usdce_eth_amount + shadow_eth_amount + beets_eth_amount + relic_eth_amount
+            logger.info(f"""
+            Raw balances:
+            USDC-e ({decimals['usdce']} decimals): {usdce_balance}
+            SHADOW ({decimals['shadow']} decimals): {shadow_balance}
+            BEETS ({decimals['beets']} decimals): {beets_balance}
+            RELIC ({decimals['relic']} decimals): {relic_balance}
+
+            Normalized amounts:
+            USDC-e: {usdce_eth_amount}
+            SHADOW: {shadow_eth_amount}
+            BEETS: {beets_eth_amount}
+            RELIC: {relic_eth_amount}
+
+            Total amount: {total_amount}
+            """)
 
             usdce_weight = (usdce_eth_amount / total_amount) * 100
             shadow_weight = (shadow_eth_amount / total_amount) * 100
             beets_weight = (beets_eth_amount / total_amount) * 100
             relic_weight = (relic_eth_amount / total_amount) * 100
 
+            logger.info(f"""
+            Calculated weights:
+            USDC-e: {usdce_weight:.2f}%
+            SHADOW: {shadow_weight:.2f}%
+            BEETS: {beets_weight:.2f}%
+            RELIC: {relic_weight:.2f}%
+            """)
             usdce_weight_description = get_weight_description(usdce_weight)
             shadow_weight_description = get_weight_description(shadow_weight)
             beets_weight_description = get_weight_description(beets_weight)
