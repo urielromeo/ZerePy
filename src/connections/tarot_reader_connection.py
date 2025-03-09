@@ -425,18 +425,46 @@ class TarotReaderConnection(BaseConnection):
 
             winner_bribe = ""
 
-            # Determine winner based on highest weight
-            max_weight = max(usdce_weight, shadow_weight, beets_weight, relic_weight)
-            if max_weight == usdce_weight:
-                winner_bribe = usdc_e_prompt
-            elif max_weight == shadow_weight:
-                winner_bribe = shadow_prompt
-            elif max_weight == beets_weight:
-                winner_bribe = beets_prompt
-            elif max_weight == relic_weight:
-                winner_bribe = relics_prompt
+
+            # NEW SECTION FOR IMPROVED RANDOMNESS
+            weights = [
+                ('usdc_e', usdce_weight, usdc_e_prompt),
+                ('shadow', shadow_weight, shadow_prompt),
+                ('beets', beets_weight, beets_prompt),
+                ('relic', relic_weight, relics_prompt)
+            ]
+            
+            # Convert weights to probabilities
+            total_weight = sum(w[1] for w in weights)
+            weighted_choices = [(name, weight/total_weight, prompt) for name, weight, prompt in weights]
+            
+            # Random selection based on weights
+            import random
+            r = random.random()  # Random float between 0 and 1
+            cumulative_prob = 0
+            
+            for name, prob, prompt in weighted_choices:
+                cumulative_prob += prob
+                if r <= cumulative_prob:
+                    winner_bribe = prompt
+                    break
             else:
-                winner_bribe = usdc_e_prompt  # Fallback if no clear winner
+                winner_bribe = usdc_e_prompt  # Fallback if no selection made
+     
+            # END SECTION FOR IMPROVED RANDOMNESS
+
+            # Determine winner based on highest weight
+            # max_weight = max(usdce_weight, shadow_weight, beets_weight, relic_weight)
+            # if max_weight == usdce_weight:
+            #     winner_bribe = usdc_e_prompt
+            # elif max_weight == shadow_weight:
+            #     winner_bribe = shadow_prompt
+            # elif max_weight == beets_weight:
+            #     winner_bribe = beets_prompt
+            # elif max_weight == relic_weight:
+            #     winner_bribe = relics_prompt
+            # else:
+            #     winner_bribe = usdc_e_prompt  # Fallback if no clear winner
 
             allora_conn = self.connection_manager.connections.get("allora")
             allora_price_prediction = await allora_conn.perform_action("get-inference", {"topic_id": 2,})
@@ -821,18 +849,46 @@ Below is the mystical reading (for reference only; do not include it in your out
 
             winner_bribe = ""
 
-            # Determine winner based on highest weight
-            max_weight = max(usdce_weight, shadow_weight, beets_weight, relic_weight)
-            if max_weight == usdce_weight:
-                winner_bribe = usdc_e_prompt
-            elif max_weight == shadow_weight:
-                winner_bribe = shadow_prompt
-            elif max_weight == beets_weight:
-                winner_bribe = beets_prompt
-            elif max_weight == relic_weight:
-                winner_bribe = relics_prompt
+            # NEW SECTION FOR IMPROVED RANDOMNESS
+            weights = [
+                ('usdc_e', usdce_weight, usdc_e_prompt),
+                ('shadow', shadow_weight, shadow_prompt),
+                ('beets', beets_weight, beets_prompt),
+                ('relic', relic_weight, relics_prompt)
+            ]
+            
+            # Convert weights to probabilities
+            total_weight = sum(w[1] for w in weights)
+            weighted_choices = [(name, weight/total_weight, prompt) for name, weight, prompt in weights]
+            
+            # Random selection based on weights
+            import random
+            r = random.random()  # Random float between 0 and 1
+            cumulative_prob = 0
+            
+            for name, prob, prompt in weighted_choices:
+                cumulative_prob += prob
+                if r <= cumulative_prob:
+                    winner_bribe = prompt
+                    break
             else:
-                winner_bribe = usdc_e_prompt  # Fallback if no clear winner
+                winner_bribe = usdc_e_prompt  # Fallback if no selection made
+     
+            # END SECTION FOR IMPROVED RANDOMNESS
+
+
+            # Determine winner based on highest weight
+            # max_weight = max(usdce_weight, shadow_weight, beets_weight, relic_weight)
+            # if max_weight == usdce_weight:
+            #     winner_bribe = usdc_e_prompt
+            # elif max_weight == shadow_weight:
+            #     winner_bribe = shadow_prompt
+            # elif max_weight == beets_weight:
+            #     winner_bribe = beets_prompt
+            # elif max_weight == relic_weight:
+            #     winner_bribe = relics_prompt
+            # else:
+            #     winner_bribe = usdc_e_prompt  # Fallback if no clear winner
 
             allora_conn = self.connection_manager.connections.get("allora")
             allora_price_prediction = await allora_conn.perform_action("get-inference", {"topic_id": 2,})
