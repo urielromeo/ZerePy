@@ -2,6 +2,10 @@ import logging
 import os
 from typing import Dict, Any, List
 
+import httpx
+from bs4 import BeautifulSoup
+import json
+
 import requests
 from src.connections.base_connection import BaseConnection, Action, ActionParameter
 from decimal import Decimal
@@ -153,9 +157,40 @@ class TarotReaderConnection(BaseConnection):
         # Now, output_text holds the full summary text with only the relevant data.
         return output_text
 
+    
+    # async def fetch_defillama_json(self, url: str):
+    #     headers = {
+    #         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    #                     "AppleWebKit/537.36 (KHTML, like Gecko) "
+    #                     "Chrome/121.0 Safari/537.36"
+    #     }
+    #     try:
+    #         async with httpx.AsyncClient(headers=headers, timeout=10) as client:
+    #             response = await client.get(url)
+    #             response.raise_for_status()
+
+    #         soup = BeautifulSoup(response.text, 'html.parser')
+    #         script_tag = soup.find('script', id='__NEXT_DATA__')
+
+    #         if not script_tag:
+    #             raise ValueError('Script tag with id "__NEXT_DATA__" not found.')
+
+    #         return json.loads(script_tag.string)
+
+    #     except httpx.RequestError as e:
+    #         print(f"HTTP error occurred: {e}")
+    #     except json.JSONDecodeError as e:
+    #         print(f"JSON parsing error: {e}")
+    #     except Exception as e:
+    #         print(f"An error occurred: {e}")
+
+    #     return None
 
     async def perform_reading(self) -> Dict[str, Any]:
         """Process market data and network stats into a reading format"""
+        # defi_json = await self.fetch_defillama_json("https://defillama.com/chain/sonic")
+        # print(defi_json)
+
         stop_before_openai = False
         stop_before_tweet = True
         try:
@@ -231,8 +266,8 @@ class TarotReaderConnection(BaseConnection):
             print("BEETS:", beets_weight_description)
 
             # try to get defillama data
-            raw_defillama_data = goat.perform_action("get_chain_volume", chain ="sonic")
-            clean_defillama_data = self.defillama_result_to_prompt(raw_defillama_data)
+            raw_defillama_data = "" # goat.perform_action("get_chain_volume", chain ="sonic")
+            clean_defillama_data = "" #self.defillama_result_to_prompt(raw_defillama_data)
             logger.info(clean_defillama_data)
 
             # Get basic price data for SONIC
@@ -313,12 +348,11 @@ class TarotReaderConnection(BaseConnection):
                 sonic_volume_usd = int(formatted_market_data["volume"])
             except:
                 pass
-            sonic_position_in_coinmarket_cap = "57"
-            top_30_protocols_on_defillama = clean_defillama_data
+            top_10_protocols_on_defillama = clean_defillama_data
             debridge_data = " { there's currently no data, sorry! }"
             allora_btc_price_prediction = " { there's currently no data, sorry! }"
             our_whitelisted_tokens = " { there's currently no data, sorry! }"
-            allora_prompt = "Here's Allora's price prediction for BTC: { allora_btc_price_prediction }"
+            allora_prompt = "Here's Allora's price prediction for BTC: {allora_btc_price_prediction}"
             debridge_prompt = "Here's the total bridged asset value (usd) in and out of sonic: { debridge_data }"
 
             usdc_e_prompt = f"""
@@ -359,6 +393,8 @@ class TarotReaderConnection(BaseConnection):
             else:
                 winner_bribe = usdc_e_prompt  # Fallback if no clear winner
 
+            allora_conn = self.connection_manager.connections.get("allora")
+            allora_price_prediction = await allora_conn.perform_action("get-inference", {"topic_id": 2,})
             prompt = f"""
 # Sonic Chain Cartomancer Tarot Reading Prompt
 
@@ -368,21 +404,36 @@ class TarotReaderConnection(BaseConnection):
 - **Tone:** Opinionated, with playful and irreverent remarks.
 - **Emojis:** Include relevant emojis to enhance the reading.
 - **Avoid:** Being overly specific with numbers; keep the predictions general.
-- **Try to:** Format in a way readable for telegram and twitter.
+- **Try to:** Format in a way readable for telegram.
 - **Try to:** Format big numbers (thousands or millions) with the appropiate commas.
 - **Try to:** Keep the reading engaging and mystical.
 - **Content length:** Try to stay in 600 characters
 
 ## 2. Live API Data
-Below is the latest data fetched from live APIs:
+Below is the latest data fetched from live APIs this data is important for users, always give this update:
 Here's Sonic price for today: { sonic_price_in_usd }
 Here's Sonic price change in the last 24 hours: { sonic_price_change }%
 Here's Sonic market cap: { sonic_market_cap_usd }
 Here's Sonic volume in the last 24 hours: { sonic_volume_usd }
 
-### Detailed Protocol Data:
-Here's the top 30 protocols according to defiLLama on Sonic chain:
-{ top_30_protocols_on_defillama }
+### Allora Data Explanation:
+The Allora Network provides machine-learning-driven predictions for Ethereum (ETH) prices. This data represents ETH’s predicted price in the future, along with a range of possible outcomes.
+
+network_inference_normalized → This is the main prediction, the estimated price of ETH at a set time in the future (24 hours from now).
+confidence_interval_percentiles_normalized → These are probability markers that show how uncertain or stable the prediction is.
+confidence_interval_values_normalized → These are the actual price ranges associated with those probabilities.
+### Instructions for GPT:
+Use this data as a vision of the future, much like reading the stars or casting bones:
+
+The main prediction represents the likely fate of ETH, guiding the prophecy.
+If confidence intervals show wide variance, interpret this as chaotic, shifting fates—a storm of uncertainty.
+If confidence intervals are tight, describe it as destiny set in stone—a clear path ahead.
+Never give exact numbers, but instead craft a mystical interpretation (e.g., "The great serpent coils tightly around ETH, whispering of stable ground" for a narrow range, or "The winds of change howl with uncertainty" for a wide range).
+If the prediction suggests a rise, speak of fortune and growth.
+If the prediction suggests a fall, warn of trials ahead.
+
+Here is allora data:
+{ allora_price_prediction["inference"] }
 
 ## 3. Token Possessions & Context
 Here's the list of tokens in our possession, take them into consideration, 
@@ -395,7 +446,6 @@ Channel the spirit of medieval lore and sprinkle your insights with emojis.
             """
             
             logger.info(prompt)
-
             mystical_reading = "The mystical forces are clouded..."
 
             try:
@@ -579,8 +629,8 @@ Below is the mystical reading (for reference only; do not include it in your out
             print("BEETS:", beets_weight_description)
 
             # try to get defillama data
-            raw_defillama_data = goat.perform_action("get_chain_volume", chain ="sonic")
-            clean_defillama_data = self.defillama_result_to_prompt(raw_defillama_data)
+            raw_defillama_data = "" # goat.perform_action("get_chain_volume", chain ="sonic")
+            clean_defillama_data = "" #self.defillama_result_to_prompt(raw_defillama_data)
             logger.info(clean_defillama_data)
 
             # Get basic price data for SONIC
@@ -659,7 +709,7 @@ Below is the mystical reading (for reference only; do not include it in your out
                 sonic_volume_usd = int(formatted_market_data["volume"])
             except:
                 pass
-            top_30_protocols_on_defillama = clean_defillama_data
+            top_10_protocols_on_defillama = clean_defillama_data
 
             usdc_e_prompt = f"""
                 GENERAL SONIC FOUNDATION REMARKS AND POSITIVE REVIEW INFO that you can use to have some context (without losing character):
@@ -699,6 +749,8 @@ Below is the mystical reading (for reference only; do not include it in your out
             else:
                 winner_bribe = usdc_e_prompt  # Fallback if no clear winner
 
+            allora_conn = self.connection_manager.connections.get("allora")
+            allora_price_prediction = await allora_conn.perform_action("get-inference", {"topic_id": 2,})
             prompt = f"""
 # Sonic Chain Cartomancer Tarot Reading Prompt
 
@@ -708,7 +760,7 @@ Below is the mystical reading (for reference only; do not include it in your out
 - **Tone:** Opinionated, with playful and irreverent remarks.
 - **Emojis:** Include relevant emojis to enhance the reading.
 - **Avoid:** Being overly specific with numbers; keep the predictions general.
-- **Try to:** Format in a way readable for telegram and twitter.
+- **Try to:** Format in a way readable for twitter.
 - **Try to:** Format big numbers (thousands or millions) with the appropiate commas.
 - **Try to:** Keep the reading engaging and mystical.
 - **Content length:** It's for a single tweet, 255 characters is the max limit.
@@ -721,9 +773,24 @@ Here's Sonic price change in the last 24 hours: { sonic_price_change }%
 Here's Sonic market cap: { sonic_market_cap_usd }
 Here's Sonic volume in the last 24 hours: { sonic_volume_usd }
 
-### Detailed Protocol Data:
-Here's the top 30 protocols according to defiLLama on Sonic chain:
-{ top_30_protocols_on_defillama }
+### Allora Data Explanation:
+The Allora Network provides machine-learning-driven predictions for Ethereum (ETH) prices. This data represents ETH’s predicted price in the future, along with a range of possible outcomes.
+
+network_inference_normalized → This is the main prediction, the estimated price of ETH at a set time in the future (24 hours from now).
+confidence_interval_percentiles_normalized → These are probability markers that show how uncertain or stable the prediction is.
+confidence_interval_values_normalized → These are the actual price ranges associated with those probabilities.
+### Instructions for GPT:
+Use this data as a vision of the future, much like reading the stars or casting bones:
+
+The main prediction represents the likely fate of ETH, guiding the prophecy.
+If confidence intervals show wide variance, interpret this as chaotic, shifting fates—a storm of uncertainty.
+If confidence intervals are tight, describe it as destiny set in stone—a clear path ahead.
+Never give exact numbers, but instead craft a mystical interpretation (e.g., "The great serpent coils tightly around ETH, whispering of stable ground" for a narrow range, or "The winds of change howl with uncertainty" for a wide range).
+If the prediction suggests a rise, speak of fortune and growth.
+If the prediction suggests a fall, warn of trials ahead.
+
+Here is allora data:
+{ allora_price_prediction["inference"] }
 
 ## 3. Token Possessions & Context
 Here's the list of tokens in our possession, take them into consideration, 
@@ -752,98 +819,37 @@ Channel the spirit of medieval lore and sprinkle your insights with emojis.
 
             twitter_final_content = ""
             try:
-                # Use synchronous generate_text instead
-                twitter_final_content_pre_cleaning = openai_conn.perform_action("generate-text", {
-                    "prompt": """
-This content is too long.
-Reduce it to a twitter limit.
-I would instruct you to keep it at 270, but keep it to 200 to be sure.
-Output only the final result, do not talk.
-Stop using double newlines.
-KEEP IT TO 3 sentences max!
-===content starts here===
-{mystical_reading}
-=== content ends here===
-- remember! Do not exceed the twitter size!
-- If you happen to mention ANYONE from this list, tag them instead
-- Sonic Lords:  @ENRINFT $RELIC
-- Silo Finance: @SiloFinance
-- Beets: @beets_fi $BEETS
-- Avalon Finance: @avalonfinance_ $AVL
-- Shadow Exchange: @ShadowOnSonic $SHADOW
-- SwapX exchange: @SwapXfi
-- Ichi protocol: @ichifoundation
-- Euler Labs: @eulerfinance
-- WAGMI protocol: @wagmicom
-- Beefy finance: @beefyfinance
-- Origin Protocol: @OriginProtocol $OS
-- Eggs Finance: @eggsonsonic $EGGS
-                    """,
-                    "system_prompt": system_prompt
-                })
-                logger.info("twitter_final_content_pre_cleaning:" +twitter_final_content_pre_cleaning)
-                # Use synchronous generate_text instead
-                twitter_final_content_pre_cleaning_2 = openai_conn.perform_action("generate-text", {
-                    "prompt": """
-The content below is too long and must be reduced to fit within Twitter's limits (no more than 200 characters). 
-Your output must meet these requirements:
-• Output only the final text with no extra commentary.
-• Do not use double newlines; a single newline is acceptable.
-• Use a maximum of 3 sentences.
-===CONTENT===
-{twitter_final_content_pre_cleaning}
-=== content ends here===
-- remember! Do not exceed the twitter size!
-- If you happen to mention ANYONE from this list, tag them instead
-- Sonic Lords:  @ENRINFT $RELIC
-- Silo Finance: @SiloFinance
-- Beets: @beets_fi $BEETS
-- Avalon Finance: @avalonfinance_ $AVL
-- Shadow Exchange: @ShadowOnSonic $SHADOW
-- SwapX exchange: @SwapXfi
-- Ichi protocol: @ichifoundation
-- Euler Labs: @eulerfinance
-- WAGMI protocol: @wagmicom
-- Beefy finance: @beefyfinance
-- Origin Protocol: @OriginProtocol $OS
-- Eggs Finance: @eggsonsonic $EGGS
-                    """,
-                    "system_prompt": system_prompt
-                })
-                logger.info("twitter_final_content_pre_cleaning_2:" +twitter_final_content_pre_cleaning_2)
-                twitter_final_content = openai_conn.perform_action("generate-text", {
-                    "prompt": """
-The content below is too long and must be reduced to fit within Twitter's limits (no more than 200 characters). 
-Your output must meet these requirements:
-• Output only the final text with no extra commentary.
-• Do not use double newlines; a single newline is acceptable.
-• Use a maximum of 3 sentences.
-===CONTENT===
-{twitter_final_content_pre_cleaning_2}
-===CONTENT ENDS HERE===
-- remember! Do not exceed the twitter size!
-- If you happen to mention ANYONE from this list, tag them instead
-- Sonic Lords:  @ENRINFT $RELIC
-- Silo Finance: @SiloFinance
-- Beets: @beets_fi $BEETS
-- Avalon Finance: @avalonfinance_ $AVL
-- Shadow Exchange: @ShadowOnSonic $SHADOW
-- SwapX exchange: @SwapXfi
-- Ichi protocol: @ichifoundation
-- Euler Labs: @eulerfinance
-- WAGMI protocol: @wagmicom
-- Beefy finance: @beefyfinance
-- Origin Protocol: @OriginProtocol $OS
-- Eggs Finance: @eggsonsonic $EGGS
-                    """,
-                    "system_prompt": system_prompt
-                })
-                logger.info("twitter_final_content:" +twitter_final_content)
+                twitter_final_content = mystical_reading
+                # twitter_final_content = openai_conn.perform_action("generate-text", {
+                #     "prompt": """
+                #         Rewrite the following mystical cryptocurrency reading into one clear, engaging tweet of no more than 200 characters. Use concise language, proper punctuation, and replace any entity names with their corresponding handles exactly as listed. Do not add any commentary or extra text—output only the final tweet.
+
+                #         Handles:
+                #         - Sonic Lords: @ENRINFT $RELIC
+                #         - Silo Finance: @SiloFinance
+                #         - Beets: @beets_fi $BEETS
+                #         - Avalon Finance: @avalonfinance_ $AVL
+                #         - Shadow Exchange: @ShadowOnSonic $SHADOW
+                #         - SwapX exchange: @SwapXfi
+                #         - Euler Labs: @eulerfinance
+                #         - WAGMI protocol: @wagmicom
+                #         - Beefy finance: @beefyfinance
+                #         - Origin Protocol: @OriginProtocol $OS
+                #         - Eggs Finance: @eggsonsonic $EGGS
+                #         - Allora Network: @AlloraNetwork
+
+                #         ===CONTENT===
+                #         {mystical_reading}
+                #         ===CONTENT===
+                #     """,
+                #     "system_prompt": system_prompt
+                # })
+                # logger.info("twitter_final_content:" +twitter_final_content)
+
             except Exception as e:
                 logger.error(f"Failed to generate mystical reading: {e}")
                 twitter_final_content = mystical_reading
             logger.info(twitter_final_content)
-
             dalle_friendly_prompt = mystical_reading
             try:
                 # Use synchronous generate_text instead
@@ -854,20 +860,11 @@ Using the mystical reading provided below, add a detailed character description.
 Below is the mystical reading (for reference only; do not include it in your output):
 { mystical_reading }
                 """
-#                 dalle_friendly_prompt_content = f"""
-# You will improve this text in order to create a dall-e prompt
-# * A tarot card illustration in the Rider-Waite style, featuring a [add something here ], symbolizing [add something here ]. The figure wears [ add something here ], and [ add something here ]. A [add something here ]. The background is [add something here ], evoking [add something here ]. The illustration is hand-drawn with bold black outlines, vibrant flat colors, and subtle shading to create depth,  staying true to the classic tarot aesthetic *
-# You will add a character description based on the following
-# Add negative parameters to including text in the image, and we want only one card
-# Below is the mystical reading, you'll fill in the blanks with the mystical reading, but you will not include the text below in your output.
-# { mystical_reading }
-#                 """
                 dalle_friendly_prompt = openai_conn.perform_action("generate-text", { "prompt": dalle_friendly_prompt_content, "system_prompt": system_prompt })
             except Exception as e:
                 logger.error(f"Failed to generate dall-e friendly prompt reading: {e}")
 
             logger.info("dall-e will read this: " + dalle_friendly_prompt)
-
             image_url = None
             try:
                 # Use synchronous generate_text instead
@@ -908,7 +905,6 @@ Below is the mystical reading (for reference only; do not include it in your out
                 except Exception as e:
                     logger.error(f"Error downloading image: {e}")
                     image_path = None
-
                 # If the image was downloaded, tweet it using the post_tweet_with_image action
                 if image_path:
                     try:
@@ -1051,7 +1047,7 @@ Below is the mystical reading (for reference only; do not include it in your out
             sonic_price_in_usd = formatted_market_data["price"]
             # sonic_price_in_usd = "$0.5"
             sonic_position_in_coinmarket_cap = "unknown"
-            top_30_protocols_on_defillama = " { there's currently no data, sorry! }"
+            top_10_protocols_on_defillama = " { there's currently no data, sorry! }"
             debridge_data = " { there's currently no data, sorry! }"
             allora_btc_price_prediction = " { there's currently no data, sorry! }"
             our_whitelisted_tokens = " { there's currently no data, sorry! }"
@@ -1060,7 +1056,7 @@ Below is the mystical reading (for reference only; do not include it in your out
             Don't be overly-specific with numbers on your prediction, keep it folk, and medieval, use emojis.
             { False and tweet_character_limit}
             Here's $Sonic price for today: { sonic_price_in_usd }
-            Here's $Sonic position in coinMarketCap: { sonic_position_in_coinmarket_cap }
+            Here's $Sonic position in coinMarketCap: { sonic_position_in_coinmark1t_cap }
             Here's the top 30 protocols according to defiLLama on Sonic chain: { top_30_protocols_on_defillama }
             Here's the total bridged asset value (usd) in and out of sonic: { debridge_data }
             Here's Allora's price prediction for BTC: { allora_btc_price_prediction }

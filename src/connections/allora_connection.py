@@ -60,39 +60,32 @@ class AlloraConnection(BaseConnection):
         ]
         self.actions = {action.name: action for action in actions}
 
-    def _make_request(self, method_name: str, *args, **kwargs) -> Any:
+    async def _make_request(self, method_name: str, *args, **kwargs) -> Any:
         """Make API request with error handling"""
         try:
             client = self._get_client()
             method = getattr(client, method_name)
-            
-            # Create event loop for async calls
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                response = loop.run_until_complete(method(*args, **kwargs))
-                return response
-            finally:
-                loop.close()
-                
+            return await method(*args, **kwargs)
         except Exception as e:
             raise AlloraAPIError(f"API request failed: {str(e)}")
 
-    def get_inference(self, topic_id: int) -> Dict[str, Any]:
+    async def get_inference(self, topic_id: int) -> Dict[str, Any]:
         """Get inference from Allora Network for a specific topic"""
         try:
-            response = self._make_request('get_inference_by_topic_id', topic_id)
+            response = await self._make_request('get_inference_by_topic_id', topic_id)
+
             return {
                 "topic_id": topic_id,
-                "inference": response.inference_data.network_inference_normalized
+                "raw": response,
+                "inference": response.inference_data
             }
         except Exception as e:
             raise AlloraAPIError(f"Failed to get inference: {str(e)}")
 
-    def list_topics(self) -> List[Dict[str, Any]]:
+    async def list_topics(self) -> List[Dict[str, Any]]:
         """List all available Allora Network topics"""
         try:
-            return self._make_request('get_all_topics')
+            return await self._make_request('get_all_topics')
         except Exception as e:
             raise AlloraAPIError(f"Failed to list topics: {str(e)}")
 
@@ -128,14 +121,14 @@ class AlloraConnection(BaseConnection):
     def is_configured(self, verbose: bool = False) -> bool:
         """Check if Allora API is configured"""
         api_key = os.getenv("ALLORA_API_KEY")
-        if verbose:
+        if verbose or True:
             if not api_key:
                 logger.info("\n❌ Allora API key not found in environment")
             else:
                 logger.info("\n✅ Allora API key found")
         return bool(api_key)
 
-    def perform_action(self, action_name: str, kwargs) -> Any:
+    async def perform_action(self, action_name: str, kwargs) -> Any:
         """Execute an action with validation"""
         if action_name not in self.actions:
             raise KeyError(f"Unknown action: {action_name}")
@@ -147,4 +140,4 @@ class AlloraConnection(BaseConnection):
 
         method_name = action_name.replace('-', '_')
         method = getattr(self, method_name)
-        return method(**kwargs)
+        return await method(**kwargs)
